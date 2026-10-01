@@ -1,0 +1,19 @@
+tools=[
+    {
+        "type":"function",
+        "function":{
+            "name":"search_web",
+            "description":"搜索互联网获取实时产品信息",
+            "parameters":{
+                "type":"object",
+                "properties":{
+                    "query":{"type":"string",
+                             "description":"需要搜索的关键词"}
+                },
+                "required":[
+                    "query"
+                ]
+            }
+        }
+    }
+]
