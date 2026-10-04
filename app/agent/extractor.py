@@ -2,6 +2,7 @@ import json
 from app.llm.client import client
 from app.models.extraction import ProductExtraction
 def extract_product(text:str,url:str):
+    print("文本长度:", len(text))
     prompt=f"""
 你是一个专业的产品信息提取助手。
 请从下面的网页正文中提取产品信息。

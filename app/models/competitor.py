@@ -1,13 +1,16 @@
 from pydantic import BaseModel
 from typing import List, Optional
+class Price(BaseModel):
+    amount: Optional[float]=None
+    currency: Optional[str]=None
 class ProductAnalysis(BaseModel):
-    name: Optional[str]
-    title: Optional[str]
-    asin: Optional[str]
-    bullet_points: List[str]
-    rating: Optional[float]
-    reviews: Optional[int]
-    price: Optional[float]
+    ame: Optional[str] = None
+    title: Optional[str] = None
+    asin: Optional[str] = None
+    bullet_points: list[str] = []
+    rating: Optional[float] = None
+    reviews: Optional[int] = None
+    price: Optional[Price] = None
 class CompetitorAnalysis(BaseModel):
     target_product: ProductAnalysis
     competitor: ProductAnalysis

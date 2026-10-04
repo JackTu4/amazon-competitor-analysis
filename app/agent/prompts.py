@@ -39,13 +39,33 @@ sumsam Amazon
 禁止填写中文占位文字。
 请严格按照以下 JSON 格式输出：
 {
-    "competitor_name": "...",
-    "competitor_title": "...",
-    "asin": "...",
-    "bullet_points": [],
-    "rating": null,
-    "reviews": "...",
-    "price_difference": "..."
+    "target_product":{
+        "name":"",
+        "title":"",
+        "asin":"",
+        "bullet_points":[],
+        "rating":null,
+        "reviews":null,
+        "price":{
+        "amount":null,
+        "currency":null
+    }
+    },
+
+    "competitor":{
+        "name":"",
+        "title":"",
+        "asin":"",
+        "bullet_points":[],
+        "rating":null,
+        "reviews":null,
+        "price":{
+        "amount":null,
+        "currency":null
+    }
+    },
+
+    "price_difference":null
 }
 不要输出 JSON 之外的任何文字。
 """

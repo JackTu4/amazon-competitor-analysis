@@ -5,6 +5,8 @@ from app.tools.web_search import search_web
 from app.llm.client import client
 from app.agent.prompts import system_prompt
 import json
+from app.tools.web_reader import read_webpage
+from app.agent.extractor import extract_product
 def competitor_agent(target_product, competitor):
     user_prompt=f"""
     请分析以下产品：
@@ -52,17 +54,23 @@ def competitor_agent(target_product, competitor):
             for tool_call in message.tool_calls:
                 args=json.loads(tool_call.function.arguments)  #将 LLM 返回的 JSON 字符串解析成 Python 字典。
                 search_result = search_web(args["query"])
+                print("开始读取网页")
+                text=read_webpage(search_result.url)  #把extractoragent中的功能加进去
+                print("网页读取成功")
+                print("开始提取产品信息")
+                product_info=extract_product(text,search_result.url)
+                print(product_info)
                 print("搜索结果")
                 print(search_result)
         #把结果加入到messages中去
                 messages.append({
-                    "role":"tool",
-                    "tool_call_id":tool_call.id,
-                    "content":json.dumps(
-                        search_result.model_dump(),
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(
+                        product_info.model_dump(),
                         ensure_ascii=False,
-                )
-            })
+                    )
+                })
             print("准备第二次调用LLM")
             print("messages=",messages)
             response=client.chat.completions.create(
