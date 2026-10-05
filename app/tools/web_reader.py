@@ -13,4 +13,7 @@ def read_webpage(url:str):
         return None
     soup = BeautifulSoup(response.content, 'html.parser')
     text=soup.get_text(separator='\n',strip=True)
-    return text   #  返回经过处理之后的纯文本形式
+    return {
+        "text":text,
+        "url":url
+    }  #  返回经过处理之后的纯文本形式

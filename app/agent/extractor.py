@@ -4,8 +4,8 @@ from app.models.extraction import ProductExtraction
 def extract_product(text:str,url:str):
     print("文本长度:", len(text))
     prompt=f"""
-你是一个专业的产品信息提取助手。
-请从下面的网页正文中提取产品信息。
+你是亚马逊商品信息抽取专家。
+请从网页文本中提取：
 网页正文：
 {text}
 请严格按照下面的 JSON 结构返回：
@@ -33,13 +33,24 @@ def extract_product(text:str,url:str):
     }}
 }}
 要求：
-1. 只能提取网页中明确出现的信息。
-2. 不要自己猜测。
-3. 找不到的信息返回 null。
-4. features 必须是数组。
-5. features 中每个元素必须包含 name 和 description。
-6. name 是功能名称，description 是功能的具体描述。
-7. 只返回 JSON，不要返回其他文字。"""
+1. 商品名称:
+- 不包含Amazon.com
+- 不包含Electronics
+2. 商品标题:
+- 只保留商品listing标题
+3. ASIN:
+- 从网页中找到ASIN
+4. 品牌:
+- Brand字段
+5. 价格:
+- 查找美元价格，例如 $37.99
+- 找不到返回null
+6. 五点描述:
+- 只提取 About this item 下的5条
+- 不要提取规格参数
+不要猜测。
+不存在返回null。"""
+    print("发送给LLM文本长度:", len(text))
     response=client.chat.completions.create(
         model="qwen3.8-27b",
         messages=[
