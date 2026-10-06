@@ -19,7 +19,17 @@ system_prompt = """
 2. 必须分别搜索目标产品和竞品。
 3. 目标产品和竞品各搜索一次。
 4. 不允许只搜索其中一个产品。
-5. 搜索关键词应该包含产品名称和 Amazon。
+搜索关键词规则：
+1. 产品名称 + Amazon + product
+2. 优先搜索商品详情页
+3. 避免搜索品牌主页
+4. 避免搜索category页面
+例如：
+错误：
+Samsung Amazon
+正确：
+Samsung SSD Amazon product
+Samsung 980 Pro SSD Amazon
 6. 获取搜索结果后，再进行竞品分析。
 
 例如：
@@ -37,12 +47,19 @@ sumsam Amazon
 - 其他无法获取的字段返回 null
 不要编造信息。
 禁止填写中文占位文字。
+如果产品名称疑似拼写错误：
+1. 尝试纠正可能品牌名称
+2. 再搜索
+3. 优先搜索具体商品，不搜索品牌主页
 请严格按照以下 JSON 格式输出：
 {
     "target_product":{
+        "product":{
         "name":"",
         "title":"",
         "asin":"",
+        "brand":""
+        }
         "bullet_points":[],
         "rating":null,
         "reviews":null,
@@ -53,9 +70,12 @@ sumsam Amazon
     },
 
     "competitor":{
+        "product":{
         "name":"",
         "title":"",
         "asin":"",
+        "brand":""
+        },
         "bullet_points":[],
         "rating":null,
         "reviews":null,

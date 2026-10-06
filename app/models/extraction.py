@@ -17,5 +17,5 @@ class Feature(BaseModel):
 class ProductExtraction(BaseModel):
     product: Product
     price: Price
-    features: list[Feature]
+    features: list[Feature] = []
     source: Source

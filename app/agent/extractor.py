@@ -2,10 +2,21 @@ import json
 from app.llm.client import client
 from app.models.extraction import ProductExtraction
 def extract_product(text:str,url:str):
+    text = text[:5000]
     print("文本长度:", len(text))
+    print(text)
     prompt=f"""
 你是亚马逊商品信息抽取专家。
-请从网页文本中提取：
+规则：
+1. 只提取第一个完整商品
+2. 忽略:
+   - 推荐商品
+   - Similar item
+   - More results
+   - Brand store
+   - 广告
+3. 如果网页是搜索列表:
+   返回最匹配query的第一个商品
 网页正文：
 {text}
 请严格按照下面的 JSON 结构返回：

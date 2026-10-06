@@ -4,8 +4,8 @@ class AnalysisWorkflow:
         self.tasks=[]
     def add_task(self,task):
         self.tasks.append(task)
-    def run(self):
-        previous_result = None
+    def run(self,input_data):
+        previous_result = input_data
         for task in self.tasks:
             print(
                 "开始执行",
@@ -23,6 +23,12 @@ class AnalysisWorkflow:
             except Exception as e:
                 task.status="failed"
                 task.error=str(e)
-                break
-        return self.tasks
+                print(
+                    f"{task.name}执行失败:",
+                    e
+                )
+                previous_result = {
+                    "error": str(e)
+                }
+        return previous_result
         

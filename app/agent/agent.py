@@ -52,34 +52,67 @@ def competitor_agent(target_product, competitor):
             })
             #执行所有的tool
             for tool_call in message.tool_calls:
-                args=json.loads(tool_call.function.arguments)  #将 LLM 返回的 JSON 字符串解析成 Python 字典。
-                search_result = search_web(args["query"])
-                print("开始读取网页")
-                text=read_webpage(search_result.url)  #把extractoragent中的功能加进去
-                print("网页读取成功")
-                print("开始提取产品信息")
-                product_info=extract_product(text,search_result.url)
-                print(product_info)
-                print("搜索结果")
-                print(search_result)
-        #把结果加入到messages中去
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": json.dumps(
-                        product_info.model_dump(),
-                        ensure_ascii=False,
+                try:
+                    args=json.loads(tool_call.function.arguments)  #将 LLM 返回的 JSON 字符串解析成 Python 字典。
+                    search_result = search_web(args["query"])
+                    print("开始读取网页")
+                    page=read_webpage(search_result.url)  #把extractoragent中的功能加进去
+                    print("网页读取成功")
+                    print("开始提取产品信息")
+                    product_info=extract_product(
+                        page["text"],
+                        page["url"]
                     )
-                })
+                    print(product_info)
+                    print("搜索结果")
+                    print(search_result)
+            #把结果加入到messages中去
+                    tool_data = {   #  数据清洗  只保留自己想要的几个数据
+                        "name": product_info.product.name,
+                        "title": product_info.product.title,
+                        "asin": product_info.product.asin,
+                        "brand": product_info.product.brand,
+                        "features": product_info.features[:5]
+                    }
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(
+                            tool_data,
+                            ensure_ascii=False
+                        )
+                    })
+                except Exception as e:
+                    print(
+                        "产品分析失败:",
+                        e
+                    )
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(
+                            {
+                                "error": str(e),
+                                "message": "该产品无法获取数据"
+                            },
+                            ensure_ascii=False
+                        )
+                    })
             print("准备第二次调用LLM")
             print("messages=",messages)
             response=client.chat.completions.create(
                 model="qwen3.8-27b",
                 messages=messages,
+                response_format={
+                    "type": "json_object"
+                }
             )
             final_content = response.choices[0].message.content
             print("LLM最终回答：")
             print(final_content)
+            data = json.loads(final_content)
+            print("解析后的data:")
+            print(data)
             data=json.loads(final_content)
             result=CompetitorAnalysis(**data)
             return result  #  最终结果结构化输出
@@ -95,3 +128,4 @@ def competitor_agent(target_product, competitor):
         print(e)
     except Exception as e:
         print(f"未知错误:{e}")
+        raise e

@@ -6,9 +6,6 @@ class Price(BaseModel):
     currency: Optional[str]=None
 class ProductAnalysis(BaseModel):
     product: Product
-    name: Optional[str] = None
-    title: Optional[str] = None
-    asin: Optional[str] = None
     bullet_points: list[str] = []
     rating: Optional[float] = None
     reviews: Optional[int] = None
