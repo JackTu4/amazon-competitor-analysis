@@ -29,17 +29,32 @@ def read_webpage(url:str):
         raise Exception(
             f"网页请求失败:{response.status_code}"
         )
-    soup = BeautifulSoup(response.content, 'html.parser')
+    soup = BeautifulSoup(response.content, "html.parser")
+    for tag in soup([
+        "script",
+        "style",
+        "noscript",
+        "header",
+        "footer",
+        "svg",
+        "nav"
+    ]):
+        tag.decompose()
     text=soup.get_text(separator='\n',strip=True)
+    print("网页文本长度:", len(text))
     if "Continue shopping" in text:
         raise Exception(
             "Amazon返回验证页面"
         )
-    if text is None or len(text) == 0:
+    if not text:
         raise Exception(
             "网页没有有效文本"
         )
+    print("网页文本长度:", len(text))
+    print("=" * 50)
+    print(text[:3000])
+    print("=" * 50)
     return {
         "text":text,
         "url":url
-    }  #  返回经过处理之后的纯文本形式
+    }

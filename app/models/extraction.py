@@ -19,3 +19,6 @@ class ProductExtraction(BaseModel):
     price: Price
     features: list[Feature] = []
     source: Source
+    rating: Optional[float] = None
+    reviews: Optional[int] = None
+    bullet_points: list[str] = []

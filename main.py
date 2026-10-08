@@ -6,8 +6,8 @@ if __name__ == '__main__':
         workflow.add_task(task)
     result=workflow.run(
         {
-            "target_product":"huadisk nvme ssd amazon",
-            "competitor":"sumsam nvme ssd amazon"
+            "target_product":"Huadisk nvme ssd amazon",
+            "competitor":"Sumsam nvme ssd amazon"
         }
     )
     print("完成")
