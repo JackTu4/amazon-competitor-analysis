@@ -19,42 +19,130 @@ def read_webpage(url:str):
         "Accept":
             "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
     }
-    session = requests.Session()
-    response = session.get(
+    response = requests.get(
         url,
         headers=headers,
-        timeout=10
+        timeout=15
     )
     if response.status_code != 200:
         raise Exception(
             f"网页请求失败:{response.status_code}"
         )
-    soup = BeautifulSoup(response.content, "html.parser")
-    for tag in soup([
-        "script",
-        "style",
-        "noscript",
-        "header",
-        "footer",
-        "svg",
-        "nav"
-    ]):
+    response.raise_for_status()
+    soup=BeautifulSoup(response.content,"html.parser")
+    for tag in soup.select(
+            "script, style, noscript, svg, "
+            "header, footer, nav, iframe"
+    ):
         tag.decompose()
-    text=soup.get_text(separator='\n',strip=True)
-    print("网页文本长度:", len(text))
-    if "Continue shopping" in text:
-        raise Exception(
-            "Amazon返回验证页面"
+    lines=[]
+    seen=set()
+    ignore_phrases=[
+        "Add to cart",
+        "Buy Now",
+        "Add to List",
+        "Added to",
+        "Select delivery location",
+        "Sign in to continue",
+        "FREE Returns",
+        "Return this item for free",
+        "Read full return policy",
+        "Learn more",
+        "See more",
+        "Report an issue with this product or seller",
+        "Customers also viewed these products",
+        "Previous set of slides",
+        "Start over",
+        "Image Unavailable",
+        "Image not available for",
+        "VIDEOS",
+        "360° VIEW",
+        "IMAGES",
+        "Gift options",
+        "Secure transaction",
+        "Product support included",
+        "To see product details, add this item to your cart.",
+        "Brief content visible, double tap to read full content.",
+        "Full content visible, double tap to read brief content.",
+        "Sorry, there was a problem.",
+        "List unavailable.",
+        "Get it as soon as",
+        "FREE Shipping by Amazon",
+        "No Import Charges",
+        "Shipping & Fee Details",
+        "AmazonGlobal Shipping",
+        "Estimated Import Charges",
+        "Sales taxes may apply at checkout",
+        "Shipping cost, delivery date",
+        "Deliver to",
+        "delivery",
+        "Quantity:",
+        "Subtotal",
+        "Initial payment breakdown",
+        "Includes selected options",
+        "Includes initial monthly payment",
+        "Purchase options and add-ons",
+
+        # 卖家、退货和支付说明
+        "Ships from",
+        "Sold by",
+        "30-day refund",
+        "Quick refund",
+        "Usually issued within",
+        "Shipping fee",
+        "Convenient dropoff",
+        "See exceptions",
+        "See details",
+        "Your transaction is secure",
+        "We work hard to protect your security and privacy",
+        "This item is a gift",
+        "Available at checkout",
+        "Unable to add item to List",
+        "error retrieving your Wish Lists",
+
+        # Amazon 推荐商品区域
+        "Consider a similar item",
+        "Featured items to consider",
+        "Amazon's Choice",
+        "Customers also viewed",
+        "Featured items",
+        # Amazon 内部数据
+        "desktop_buybox_group",
+        "offerListingId",
+        "buyingOptionType",
+        "symbolPosition",
+        "fractionalValue",
+        "integerValue",
+
+    ]
+    import re
+    def remove_amazon_json(text: str) -> str:
+        text = re.sub(
+            r'\{"desktop_buybox_group_1".*?\}\]',
+            '',
+            text,
+            flags=re.DOTALL
         )
-    if not text:
-        raise Exception(
-            "网页没有有效文本"
-        )
-    print("网页文本长度:", len(text))
-    print("=" * 50)
-    print(text[:3000])
-    print("=" * 50)
+        return text
+
+    for line in soup.stripped_strings:
+        line = " ".join(line.split())
+        if not line:
+            continue
+        # 过滤无关提示语
+        if any(
+                phrase.lower() in line.lower()
+                for phrase in ignore_phrases
+        ):
+            continue
+        # 过滤单独出现的价格符号和拆分数字
+        if line in {"S$", "$", "S", ".", "£", "€"}:
+            continue
+        lines.append(line)
+
+    text = "\n".join(lines)
+    text = remove_amazon_json(text)
     return {
-        "text":text,
-        "url":url
+        "url": url,
+        "text": text
     }
