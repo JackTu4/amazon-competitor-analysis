@@ -114,7 +114,39 @@ def read_webpage(url:str):
         "fractionalValue",
         "integerValue",
 
-    ]
+        # 价格 / 配送 / 库存 / 支付
+        "FREE Shipping",
+        "In Stock",
+        "FREE Returns",
+        "See return policy",
+        "At any of our",
+        "What's Product Support",
+        "At checkout, you can add",
+
+        # 购买框 / 数量选择 / 增强选项
+        "Enhancements you chose",
+        "To add the following enhancements",
+        "choose a different seller",
+        "not available for the seller",
+        "unavailable for quantities",
+        "cardName",
+        "Make a ",
+        "See 0 options",
+
+        # 组合购买 / 相关商品
+        "Frequently bought together",
+        "Add both to Cart",
+        "Choose items to buy together",
+        "To see our price, add these items",
+        "Try again!",
+        "Total price",
+        "List Price",
+        "List:",
+        "Show details",
+        "Hide details",
+        "fractionalValue",
+        "integerValue",
+        ]
     import re
     def remove_amazon_json(text: str) -> str:
         text = re.sub(
@@ -135,8 +167,20 @@ def read_webpage(url:str):
                 for phrase in ignore_phrases
         ):
             continue
-        # 过滤单独出现的价格符号和拆分数字
-        if line in {"S$", "$", "S", ".", "£", "€"}:
+        # 过滤单独出现的价格符号、货币代码和分隔符
+        if line in {"S$", "$", "S", ".", "£", "€", "›", "TWD"}:
+            continue
+        # 过滤被拆分的价格/评分/数量数字，如 "1,611"、"94"、"1 2 3 4 5"
+        if re.fullmatch(r"[\d\s\.,]+", line):
+            continue
+        # 过滤配送日期行，如 "Tuesday, October 27" / "Friday, Oct 23"
+        if re.fullmatch(
+            r"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+"
+            r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec|"
+            r"January|February|March|April|June|July|August|September|"
+            r"October|November|December)\.?\s+\d{1,2}",
+            line,
+        ):
             continue
         lines.append(line)
 

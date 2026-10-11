@@ -1,10 +1,15 @@
 import json
+import logging
 from app.llm.client import client
 from app.models.extraction import ProductExtraction
+
+logger = logging.getLogger(__name__)
+
+
 def extract_product(text:str,url:str,title: str):
-    text = text[:5000]
-    print("文本长度:", len(text))
-    print(text)
+    text = text[:8000]
+    logger.debug("文本长度: %s", len(text))
+    logger.debug(text)
     prompt = f"""
 你是一个专业的亚马逊商品信息提取器。
 你的唯一任务是：
@@ -119,7 +124,7 @@ reviews：
 只输出 JSON。
 不要输出任何其他文字。
 """
-    print("发送给LLM文本长度:", len(text))
+    logger.debug("发送给LLM文本长度: %s", len(text))
     response=client.chat.completions.create(
         model="qwen3.7-flash",
         messages=[
@@ -137,5 +142,16 @@ reviews：
     data=json.loads(content)
     data["source"]["url"] = url
     data["source"]["title"] = title
+    data = json.loads(content)
+
+    data["source"]["url"] = url
+    data["source"]["title"] = title
+    bullets = []
+    for item in data.get("bullet_points") or []:
+        if isinstance(item, dict):
+            item = item.get("description") or item.get("name") or ""
+        if isinstance(item, str) and item:
+            bullets.append(item)
+    data["bullet_points"] = bullets
     result=ProductExtraction(**data)
     return result

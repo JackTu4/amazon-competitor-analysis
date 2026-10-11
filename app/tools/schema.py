@@ -1,18 +1,39 @@
 tools=[
     {
-        "type":"function",
-        "function":{
-            "name":"search_web",
-            "description":"搜索互联网获取实时产品信息",
-            "parameters":{
-                "type":"object",
-                "properties":{
-                    "query":{"type":"string",
-                             "description":"需要搜索的关键词"}
+          "type": "function",
+        "function": {
+            "name": "search_web",
+            "description": "搜索互联网获取实时产品信息，适用于本地知识库资料不足或需要查询最新商品信息的情况",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "需要搜索的产品关键词，例如品牌、型号、容量和产品类型"
+                    }
                 },
-                "required":[
-                    "query"
-                ]
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_knowledge",
+            "description": "检索本地亚马逊产品知识库，获取产品规格、容量、读取速度、接口、保修等信息。应优先调用此工具，再根据检索结果决定是否需要搜索网页",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "需要检索的产品问题"
+                    },
+                    "top_k": {
+                        "type": "integer",
+                        "description": "返回的相关资料数量，默认值为3"
+                    }
+                },
+                "required": ["query"]
             }
         }
     }

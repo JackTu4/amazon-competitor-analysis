@@ -1,4 +1,10 @@
+import logging
+
 from app.workflow.task import Task
+
+logger = logging.getLogger(__name__)
+
+
 class AnalysisWorkflow:
     def __init__(self):
         self.tasks=[]
@@ -7,10 +13,7 @@ class AnalysisWorkflow:
     def run(self,input_data):
         previous_result = input_data
         for task in self.tasks:
-            print(
-                "开始执行",
-                task.name
-            )
+            logger.info("开始执行 %s", task.name)
             task.status="running"
             try:
                 if previous_result is None:
@@ -23,10 +26,7 @@ class AnalysisWorkflow:
             except Exception as e:
                 task.status="failed"
                 task.error=str(e)
-                print(
-                    f"{task.name}执行失败:",
-                    e
-                )
+                logger.error("%s 执行失败: %s", task.name, e)
                 previous_result = {
                     "error": str(e)
                 }

@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 class Source(BaseModel):
     url: str
     title: Optional[str]
@@ -21,4 +21,4 @@ class ProductExtraction(BaseModel):
     source: Source
     rating: Optional[float] = None
     reviews: Optional[int] = None
-    bullet_points: list[str] = []
+    bullet_points: list[str] = Field(default_factory=list)
