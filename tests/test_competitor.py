@@ -41,16 +41,4 @@ analysis = CompetitorAnalysis(
     price_difference=competitor.price.amount -
         target.price.amount
 )
-print("====================")
-print("对象输出")
-print(analysis)
-print("====================")
-print("字典输出")
-data=analysis.model_dump()
-print(data)
-print("====================")
-print("JSON输出")
-json_data = analysis.model_dump_json(
-    indent=2
-)
-print(json_data)
+

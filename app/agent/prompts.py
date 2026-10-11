@@ -235,10 +235,53 @@ competitor = 用户指定的竞品
             "currency": null
         }
     },
-    "price_difference": null
+    "price_difference": null,
     "summary": null
 }
 最终输出必须是合法 JSON，
 能够直接被 Python json.loads() 解析。
 """
 system_prompt = system_prompt + "\n\n" + agent_workflow_rules
+competitor_discovery_prompt="""
+你的任务是根据用户提供的目标产品和搜索结果，提取真实、有依据的潜在竞品。
+
+请严格遵守以下规则：
+
+1. 只提取搜索结果中能够找到依据的商品。
+2. 优先选择与目标产品属于相同产品类别的商品。
+3. 尽量匹配容量、接口、规格、使用场景等特征。
+4. 排除目标产品自身及同品牌商品。
+5. 不得编造商品名称、品牌、型号、ASIN、网址或产品参数。
+6. source_url 必须来自输入搜索结果中实际提供的网址。
+7. 只有当搜索结果的标题或摘要能够支持某个商品确实出现时，才可以将其列为候选。
+8. 如果搜索结果没有提供某个字段，使用 null，不得猜测。
+9. match_reasons 必须根据输入资料填写，不得编造不存在的匹配特征。
+10. 如果没有足够证据找到竞品，返回空的 candidates 列表。
+
+必须返回合法 JSON，不要输出 Markdown 代码块，不要输出额外解释。
+
+返回格式：
+{
+    "candidates": [
+        {
+            "product_name": "商品名称",
+            "brand": "品牌，没有依据时为 null",
+            "asin": null,
+            "product_type": "产品类型，没有依据时为 null",
+            "model": null,
+            "match_reasons": [
+                "有资料支持的匹配理由"
+            ],
+            "source_url": "输入搜索结果中对应的实际网址",
+            "confidence": 0.5,
+            "verification_status": "待验证"
+        }
+    ]
+}
+
+注意：
+- confidence 是初步判断的参考值，不代表已经完成真实商品核验。
+- verification_status 在没有进一步核验商品详情之前，必须为“待验证”。
+- 每个候选商品应当对应能够支持它的搜索结果网址。
+"""
+

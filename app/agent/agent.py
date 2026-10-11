@@ -62,7 +62,7 @@ def competitor_agent(target_product, competitor):
                 if not content or not content.strip():
                     raise ValueError("LLM 最终回答为空")
                 content = content.strip()
-                if content.startswith("```"):
+                if content.startswith("```"):    #返回的内容带有前缀‘’‘
                     lines = content.splitlines()
                     if lines and lines[0].strip().startswith("```"):
                         lines = lines[1:]
