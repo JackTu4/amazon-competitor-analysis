@@ -13,10 +13,9 @@ if __name__ == '__main__':
     workflow=AnalysisWorkflow()
     for task in workflow_tasks:
         workflow.add_task(task)
-    result=workflow.run(
+    result = workflow.run(
         {
-            "target_product":"HuaDisk 256GB nvme ssd amazon",
-            "competitor":"KingSpec 256GB M.2 2242 NVMe SSD Amazon"
+            "target_product": "HuaDisk 256GB nvme ssd amazon"
         }
     )
     print(f"完成，报告已保存到：{result}")

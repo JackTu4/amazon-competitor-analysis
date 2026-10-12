@@ -17,7 +17,7 @@ def answer_question(question: str) -> str:
         for item in results
     )
     response = client.chat.completions.create(
-        model="qwen3.7-flash",
+        model = os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
         messages=[
             {
                 "role":"system",

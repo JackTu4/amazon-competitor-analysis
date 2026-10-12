@@ -2,7 +2,9 @@ import json
 import logging
 from app.llm.client import client
 from app.models.extraction import ProductExtraction
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 
@@ -56,6 +58,22 @@ product.brand：
 - 如果没有明确 Brand，返回 null。
 - 不允许根据商品名称推测品牌。
 
+product.capacity：
+- 只提取网页明确写出的商品容量，例如 256GB、512GB、1TB。
+- 如果无法确认，返回 null。
+
+product.interface：
+- 只提取网页明确写出的接口或协议，例如 NVMe、PCIe Gen3 x4。
+- 如果无法确认，返回 null。
+
+product.form_factor：
+- 只提取网页明确写出的外形规格，例如 M.2 2280。
+- 如果无法确认，返回 null。
+
+product.model：
+- 只提取网页明确写出的商品型号。
+- 如果无法确认，返回 null。
+
 price.amount：
 - 只提取当前商品明确显示的价格。
 - 只提取数字。
@@ -106,6 +124,10 @@ reviews：
         "title": null,
         "asin": null,
         "brand": null
+        "capacity": null,
+        "interface": null,
+        "form_factor": null,
+        "model": null
     }},
     "price": {{
         "amount": null,
@@ -126,7 +148,7 @@ reviews：
 """
     logger.debug("发送给LLM文本长度: %s", len(text))
     response=client.chat.completions.create(
-        model="qwen3.7-flash",
+        model = os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
         messages=[
             {
                 "role":"system",

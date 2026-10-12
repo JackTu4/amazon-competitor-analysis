@@ -1,4 +1,5 @@
 import requests
+import time
 from bs4 import BeautifulSoup
 def cleantext(text:str):
     lines=[]
@@ -9,27 +10,32 @@ def cleantext(text:str):
     return "\n".join(lines)
 def read_webpage(url:str):
     headers = {
-        "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 "
-            "(KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language":
-            "en-US,en;q=0.9",
-        "Accept":
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://www.amazon.com/",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
     }
-    response = requests.get(
-        url,
-        headers=headers,
-        timeout=15
-    )
-    if response.status_code != 200:
-        raise Exception(
-            f"网页请求失败:{response.status_code}"
-        )
-    response.raise_for_status()
-    soup=BeautifulSoup(response.content,"html.parser")
+    response = None
+    last_err = None
+    for attempt in range(3):
+        try:
+            response = requests.get(url, headers=headers, timeout=20)
+            if response.status_code != 200:
+                raise Exception(f"网页请求失败:{response.status_code}")
+            response.raise_for_status()
+            break
+        except Exception as e:
+            last_err = e
+            response = None
+            time.sleep(2 * (attempt + 1))
+    if response is None:
+        raise last_err
+    soup = BeautifulSoup(response.content, "html.parser")
     for tag in soup.select(
             "script, style, noscript, svg, "
             "header, footer, nav, iframe"

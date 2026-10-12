@@ -36,5 +36,23 @@ tools=[
                 "required": ["query"]
             }
         }
-    }
+    },
+        {
+            "type": "function",
+            "function": {
+                "name": "discover_competitors",
+                "description": "自动搜索、筛选并验证目标产品的亚马逊竞品，返回候选商品、ASIN、来源网址和参数核验状态。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "target_product": {
+                            "type": "string",
+                            "description": "目标产品名称、品牌及规格"
+                        }
+                    },
+                    "required": ["target_product"],
+                    "additionalProperties": False
+                }
+            }
+        }
 ]

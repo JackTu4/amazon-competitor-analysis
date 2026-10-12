@@ -8,6 +8,10 @@ class Product(BaseModel):
     title: Optional[str] = None
     asin: Optional[str] = None
     brand: Optional[str] = None
+    capacity: Optional[str] = None
+    interface: Optional[str] = None
+    form_factor: Optional[str] = None
+    model: Optional[str] = None
 class Price(BaseModel):
     amount: Optional[float] = None
     currency: Optional[str] = None

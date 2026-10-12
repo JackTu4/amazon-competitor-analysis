@@ -9,7 +9,10 @@ from app.agent.extractor import extract_product
 from app.llm.client import client
 from app.agent.prompts import system_prompt
 from app.tools.knowledge_tool import search_knowledge
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
+from app.tools.competitor_tool import discover_competitors_tool
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +42,7 @@ def competitor_agent(target_product, competitor):
                 "tools 中没有定义 search_knowledge"
             )
         response = client.chat.completions.create(
-            model="qwen3.7-flash",
+            model=os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
             messages=messages,
             tools=tools,
             tool_choice={
@@ -115,6 +118,12 @@ def competitor_agent(target_product, competitor):
                             top_k=args.get("top_k", 3)
                         )
                         logger.info("知识库检索完成")
+                    elif tool_name=="discover_competitors":
+                        logger.info("开始执行自动竞品发现")
+                        tool_data = discover_competitors_tool(
+                            target_product=args["target_product"]
+                        )
+                        logger.info("自动竞品发现完成")
                     elif tool_name == "search_web":
                         search_result = search_web(args["query"])
                         if not search_result or not search_result.url:
@@ -160,7 +169,7 @@ def competitor_agent(target_product, competitor):
                 len(messages)
             )
             response = client.chat.completions.create(
-                model="qwen3.7-flash",
+                model=os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
                 messages=messages,
                 tools=tools,
                 tool_choice="auto")
