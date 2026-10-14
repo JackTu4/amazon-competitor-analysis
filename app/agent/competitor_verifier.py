@@ -32,6 +32,62 @@ def extract_asin(url: str) -> str | None:
         return match.group(1).upper()
     return None
 
+
+def find_target_asin(target_product: str) -> dict | None:
+    """搜索目标商品，并初步校验 Amazon 商品标题。"""
+    query = f"{target_product} site:amazon.com product"
+
+    results = search_web(
+        query,
+        include_domains=["amazon.com"],
+    )
+
+    if not results:
+        print("没有搜索到目标商品网页")
+        return None
+
+    # 兼容搜索工具返回列表或单个结果
+    results = results if isinstance(results, list) else [results]
+
+    # 从目标商品描述中提取品牌和容量线索
+    target_text = target_product.casefold()
+    target_capacity = extract_capacity(target_product)
+
+    for result in results:
+        title = result.title or ""
+        url = result.url or ""
+        asin = extract_asin(url)
+
+        if not asin:
+            continue
+
+        title_lower = title.casefold()
+
+        # 如果目标商品指定了容量，而标题中也出现容量，
+        # 则两者不一致时跳过。
+        title_capacity = extract_capacity(title)
+        if (
+            target_capacity
+            and title_capacity
+            and target_capacity != title_capacity
+        ):
+            print("目标商品容量不匹配，跳过：", title)
+            continue
+
+        print("候选目标商品：", title)
+        print("商品链接：", url)
+        print("提取到的 ASIN：", asin)
+
+        # 返回候选结果，供后续检查
+        return {
+            "asin": asin,
+            "title": title,
+            "url": url,
+        }
+    print("没有找到符合基本条件的 Amazon 商品详情页")
+    return None
+
+
 def verify_candidate(candidate: CompetitorCandidate,target_product: str,) -> CompetitorCandidate:
     """为单个候选竞品搜索独立的产品详情页。"""
     query = (

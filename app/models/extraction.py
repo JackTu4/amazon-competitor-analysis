@@ -1,8 +1,10 @@
 from typing import Optional
 from pydantic import BaseModel,Field
+
+
 class Source(BaseModel):
     url: str
-    title: Optional[str]
+    title: Optional[str] = None
 class Product(BaseModel):
     name: Optional[str] = None
     title: Optional[str] = None
@@ -21,7 +23,7 @@ class Feature(BaseModel):
 class ProductExtraction(BaseModel):
     product: Product
     price: Price
-    features: list[Feature] = []
+    features: list[Feature] = Field(default_factory=list)
     source: Source
     rating: Optional[float] = None
     reviews: Optional[int] = None

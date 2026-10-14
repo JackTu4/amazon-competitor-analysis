@@ -30,5 +30,6 @@ class AnalysisWorkflow:
                 previous_result = {
                     "error": str(e)
                 }
+                break
         return previous_result
         

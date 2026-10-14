@@ -164,10 +164,7 @@ reviews：
     data=json.loads(content)
     data["source"]["url"] = url
     data["source"]["title"] = title
-    data = json.loads(content)
 
-    data["source"]["url"] = url
-    data["source"]["title"] = title
     bullets = []
     for item in data.get("bullet_points") or []:
         if isinstance(item, dict):

@@ -54,5 +54,24 @@ tools=[
                     "additionalProperties": False
                 }
             }
+        },
+{
+    "type": "function",
+    "function": {
+        "name": "analyze_product_reviews",
+        "description": "采集并分析指定 Amazon 商品的用户评论，返回评分、用户痛点、优点、改进建议和总结。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "asin": {
+                    "type": "string",
+                    "description": "Amazon 商品的 10 位 ASIN"
+                }
+            },
+            "required": ["asin"],
+            "additionalProperties": False
         }
+    }
+}
+
 ]

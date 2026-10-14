@@ -1,15 +1,15 @@
 from pydantic import BaseModel,Field
-from typing import List, Optional
-from app.models.extraction import Product
-class Price(BaseModel):
-    amount: Optional[float]=None
-    currency: Optional[str]=None
+from typing import Optional
+from app.models.extraction import Product, Price
+from app.models.review_analysis import ReviewAnalysis
+
 class ProductAnalysis(BaseModel):
     product: Product
     bullet_points: list[str] = Field(default_factory=list)
     rating: Optional[float] = None
     reviews: Optional[int] = None
     price: Optional[Price] = None
+    review_analysis: Optional[ReviewAnalysis] = None
 class CompetitorAnalysis(BaseModel):
     target_product: ProductAnalysis
     competitor: ProductAnalysis

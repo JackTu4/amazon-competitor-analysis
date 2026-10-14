@@ -120,3 +120,5 @@ def extract_competitors(
         target_product=target_product,
         candidates=verified_candidates,
     )
+
+#workflow 中的discover_task的最终入口

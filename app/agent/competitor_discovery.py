@@ -61,7 +61,7 @@ def discover_candidates(target_product:str)->list[dict]:
     print("搜索结果数量：", search_count)
     print("跳过的页面数量：", skipped_count)
     print("最终保留的页面数量：", len(candidates))
-    return candidates
+    return candidates   #获得了一个具有search_query、title、url、content的candidates列表
 def run_discovery(target_product: str):
     """执行竞品发现的完整流程。"""
     # 第一步：搜索候选网页
