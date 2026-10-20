@@ -1,6 +1,10 @@
+import logging
+logger = logging.getLogger(__name__)
 import requests
 import time
 from bs4 import BeautifulSoup
+from threading import Lock
+from copy import deepcopy
 def cleantext(text:str):
     lines=[]
     for line in text.splitlines():  #把空行变成""
@@ -8,7 +12,16 @@ def cleantext(text:str):
         if line:
             lines.append(line)
     return "\n".join(lines)
-def read_webpage(url:str):
+_page_cache = {}
+_page_lock = Lock()
+def read_webpage(url: str):
+    # 1. 检查缓存
+    with _page_lock:
+        cached_result = _page_cache.get(url)
+
+    if cached_result is not None:
+        logger.info("命中网页读取缓存: %s", url)
+        return deepcopy(cached_result)
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                       "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -17,8 +30,6 @@ def read_webpage(url:str):
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Encoding": "gzip, deflate, br",
         "Referer": "https://www.amazon.com/",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
     }
     response = None
     last_err = None
@@ -36,6 +47,7 @@ def read_webpage(url:str):
     if response is None:
         raise last_err
     soup = BeautifulSoup(response.content, "html.parser")
+    has_product_body = soup.select_one("#productTitle") is not None
     for tag in soup.select(
             "script, style, noscript, svg, "
             "header, footer, nav, iframe"
@@ -177,8 +189,9 @@ def read_webpage(url:str):
         if line in {"S$", "$", "S", ".", "£", "€", "›", "TWD"}:
             continue
         # 过滤被拆分的价格/评分/数量数字，如 "1,611"、"94"、"1 2 3 4 5"
-        if re.fullmatch(r"[\d\s\.,]+", line):
+        if re.fullmatch(r"\d(?:\s+\d)+", line):
             continue
+
         # 过滤配送日期行，如 "Tuesday, October 27" / "Friday, Oct 23"
         if re.fullmatch(
             r"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+"
@@ -192,7 +205,20 @@ def read_webpage(url:str):
 
     text = "\n".join(lines)
     text = remove_amazon_json(text)
-    return {
+
+    result = {
         "url": url,
         "text": text
     }
+    if has_product_body:
+        with _page_lock:
+            _page_cache[url] = deepcopy(result)
+    else:
+        logger.warning("页面缺少商品主体，疑似降级页，不写入缓存：%s", url)
+
+    return result
+
+    # 2. 保存成功的网页读取结果
+    with _page_lock:
+        _page_cache[url] = deepcopy(result)
+    return result

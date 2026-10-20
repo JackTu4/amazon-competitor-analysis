@@ -45,6 +45,7 @@ def format_product(title, item):
 def format_review_analysis(review_analysis):
     """将评论分析结果格式化为 Markdown。"""
 
+
     if review_analysis is None:
         return (
             "### 用户评论分析\n"
@@ -97,7 +98,11 @@ def generate_markdown(data):
             try:
                 analysis = CompetitorAnalysis(**analysis)
             except Exception as e:
-                logger.warning("跳过无效分析结果：%s", e)
+                logger.warning(
+                    "竞品分析结果无效，跳过该竞品。竞品名称：%s，原因：%s",
+                    item.get("competitor_name", "未知"),
+                    e,
+                )
                 continue
 
         if isinstance(analysis, CompetitorAnalysis):
@@ -106,7 +111,14 @@ def generate_markdown(data):
     if not valid:
         return "# 亚马逊竞品分析报告\n\n当前没有成功分析的竞品，无法生成对比报告。\n"
 
-    target = valid[0].target_product
+    target = next(
+        (
+            item.target_product
+            for item in valid
+            if item.target_product.review_analysis is not None
+        ),
+        valid[0].target_product,
+    )
     parts = [
         "# 亚马逊竞品分析报告",
         "",

@@ -14,12 +14,12 @@ import os
 from app.agent.result_processor import attach_review_analysis
 from dotenv import load_dotenv
 load_dotenv()
-from app.tools.competitor_tool import discover_competitors_tool
 from app.agent.competitor_verifier import extract_asin
 
 logger = logging.getLogger(__name__)
 
-def _parse_final_result(message):
+
+def _parse_final_result(message, target_asin=None):
     """把模型的最终 JSON 回答解析为 CompetitorAnalysis 或错误 dict。"""
     content = message.content
     if not content or not content.strip():
@@ -38,6 +38,28 @@ def _parse_final_result(message):
     if data.get("error"):
         return data
     result = CompetitorAnalysis(**data)
+    expected_asin = (target_asin or "").strip().upper()
+    actual_asin = (result.target_product.product.asin or "").strip().upper()
+
+    if expected_asin and actual_asin and actual_asin != expected_asin:
+        return {
+            "error": "目标商品 ASIN 不一致",
+            "message": (
+                f"期望目标 ASIN {expected_asin}，"
+                f"模型实际输出 {actual_asin}"
+            ),
+        }
+    if expected_asin and not actual_asin:
+        logger.warning(
+            "模型未输出目标商品 ASIN，按已核验 ASIN 回填：%s",
+            expected_asin,
+        )
+        result.target_product.product.asin = expected_asin
+    logger.info(
+        "最终结果校验：目标产品标题=%r，竞品标题=%r",
+        result.target_product.product.title,
+        result.competitor.product.title,
+    )
     if not result.target_product.product.title:
         return {"error": "目标产品数据缺失", "message": "目标产品信息为空，暂不生成正式报告"}
     if not result.competitor.product.title:
@@ -45,7 +67,13 @@ def _parse_final_result(message):
     logger.debug("数据校验成功")
     return result
 
-def competitor_agent(target_product, competitor,target_asin=None):
+def competitor_agent(
+      target_product,
+      competitor,
+      target_asin=None,
+      competitor_asin=None,
+      competitor_url=None,
+  ):
     messages=[
         {
             "role": "system",
@@ -53,28 +81,41 @@ def competitor_agent(target_product, competitor,target_asin=None):
         },
         {
             "role": "user",
-            "content": (
-                f"请分析以下产品：\n"
-                f"目标产品：{target_product}\n"
-                f"竞品：{competitor}\n"
-                f"请先检索知识库，再根据资料充分程度决定是否搜索网页。"
-            )
+              "content": (
+                  f"请分析以下产品：\n"
+                  f"目标产品：{target_product}\n"
+                  f"目标产品 ASIN（已核验，必须使用）：{target_asin or '未知'}\n"
+                  f"竞品：{competitor}\n"
+                  + (f"竞品 ASIN（已核验，如提供必须使用）：{competitor_asin}\n"
+                     if competitor_asin else "")
+                  + (f"竞品链接：{competitor_url}\n"
+                     if competitor_url else "")
+                  + "请先检索知识库，再根据资料充分程度决定是否搜索网页。"
+  )
         }
     ]
     target_review_analysis = None
     try:
-        knowledge_tools = [
+        allowed_tools = {
+            "search_knowledge",
+            "search_web",
+            "analyze_product_reviews",
+        }
+        analysis_tools = [
             tool for tool in tools
-            if tool["function"]["name"] == "search_knowledge"
+            if tool["function"]["name"] in allowed_tools
         ]
-        if not knowledge_tools:
-            raise ValueError(
-                "tools 中没有定义 search_knowledge"
-            )
+
+        if not any(
+                tool["function"]["name"] == "search_knowledge"
+                for tool in analysis_tools
+        ):
+            raise ValueError("tools 中没有定义 search_knowledge")
+
         response = client.chat.completions.create(
             model=os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
             messages=messages,
-            tools=tools,
+            tools=analysis_tools,
             tool_choice={
                 "type": "function",
                 "function": {
@@ -91,7 +132,7 @@ def competitor_agent(target_product, competitor,target_asin=None):
                 len(message.tool_calls or []),
             )
             if not message.tool_calls:
-                result = _parse_final_result(message)
+                result = _parse_final_result(message, target_asin)
                 return attach_review_analysis(
                     result,
                     target_review_analysis
@@ -125,13 +166,6 @@ def competitor_agent(target_product, competitor,target_asin=None):
                         )
                         logger.info("知识库检索完成")
 
-                    elif tool_name=="discover_competitors":
-                        logger.info("开始执行自动竞品发现")
-                        tool_data = discover_competitors_tool(
-                            target_product=args["target_product"]
-                        )
-                        logger.info("自动竞品发现完成")
-
                     elif tool_name == "analyze_product_reviews":
                         logger.info("开始执行商品评论分析")
                         try:
@@ -158,30 +192,119 @@ def competitor_agent(target_product, competitor,target_asin=None):
 
 
 
+
                     elif tool_name == "search_web":
-                        search_results = search_web(args["query"])
-                        if not search_results:
-                            raise ValueError("没有找到有效的商品网页")
-                        search_result = search_results[0]
+
+                        expected_asin = (args.get("asin") or "").strip().upper()
+
                         try:
-                            page = read_webpage(search_result.url)
-                            product_info = extract_product(
-                                page["text"],
-                                page["url"],
-                                search_result.title
-                            )
-                            tool_data = product_info.model_dump()
-                            asin = extract_asin(page["url"])
-                            if asin and not tool_data.get("product", {}).get("asin"):
-                                tool_data["product"]["asin"] = asin
-                            tool_data["search_snippet"] = search_result.content
+
+                            if expected_asin:
+
+                                if (
+
+                                        len(expected_asin) != 10
+
+                                        or not expected_asin.isalnum()
+
+                                ):
+                                    raise ValueError(
+
+                                        f"无效的 ASIN：{expected_asin}"
+
+                                    )
+
+                                # 已知 ASIN 时直接读取详情页，不再自由搜索
+
+                                page_url = (
+
+                                    f"https://www.amazon.com/dp/{expected_asin}"
+
+                                )
+
+                                page = read_webpage(page_url)
+
+                                if not page or not page.get("text"):
+                                    raise ValueError(
+
+                                        f"目标 ASIN 页面读取失败：{expected_asin}"
+
+                                    )
+
+                                product_info = extract_product(
+
+                                    page["text"],
+
+                                    page["url"],
+
+                                    f"Amazon product {expected_asin}",
+
+                                )
+
+                                tool_data = product_info.model_dump()
+
+                                tool_data.setdefault("product", {})
+
+                                tool_data["product"]["asin"] = expected_asin
+
+                                tool_data["search_snippet"] = ""
+
+
+                            else:
+
+                                search_results = search_web(args["query"])
+
+                                if not search_results:
+                                    raise ValueError(
+
+                                        "没有找到有效的商品网页"
+
+                                    )
+
+                                search_result = search_results[0]
+
+                                page = read_webpage(search_result.url)
+
+                                product_info = extract_product(
+
+                                    page["text"],
+
+                                    page["url"],
+
+                                    search_result.title,
+
+                                )
+
+                                tool_data = product_info.model_dump()
+
+                                asin = extract_asin(page["url"])
+
+                                if (
+
+                                        asin
+
+                                        and not tool_data.get("product", {}).get("asin")
+
+                                ):
+                                    tool_data["product"]["asin"] = asin
+
+                                tool_data["search_snippet"] = search_result.content
+
+
                         except Exception as e:
+
                             logger.warning("网页读取或提取失败：%s", e)
+
                             tool_data = {
-                                "title": search_result.title,
-                                "url": search_result.url,
-                                "content": search_result.content,
-                                "extraction_error": str(e)
+
+                                "url": (
+
+                                    f"https://www.amazon.com/dp/{expected_asin}"
+
+                                    if expected_asin else ""
+
+                                ),
+                                "extraction_error": str(e),
                             }
 
                     else:
@@ -220,20 +343,20 @@ def competitor_agent(target_product, competitor,target_asin=None):
                 response = client.chat.completions.create(
                     model=os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
                     messages=messages,
-                    tools=tools,
+                    tools=analysis_tools,
                     tool_choice="none",
                 )
             else:
                 response = client.chat.completions.create(
                     model=os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
                     messages=messages,
-                    tools=tools,
+                    tools=analysis_tools,
                     tool_choice="auto",
                 )
             logger.info("大模型再次请求成功")
         message = response.choices[0].message
         if not message.tool_calls:
-            result = _parse_final_result(message)
+            result = _parse_final_result(message, target_asin)
             return attach_review_analysis(result, target_review_analysis)
         raise ValueError(
             f"达到最大工具调用轮数 {max_rounds}，"

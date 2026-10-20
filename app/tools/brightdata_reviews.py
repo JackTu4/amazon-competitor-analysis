@@ -12,10 +12,23 @@ API_KEY = os.getenv("BRIGHTDATA_API_KEY")
 DATASET_ID = os.getenv("BRIGHTDATA_DATASET_ID")
 BASE_URL = "https://api.brightdata.com/datasets/v3"
 
+
+def _get_with_retry(url, headers, timeout=30, attempts=3):
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            response = requests.get(url, headers=headers, timeout=timeout)
+            response.raise_for_status()
+            return response
+        except Exception as e:
+            last_error = e
+            print(f"请求失败，第 {attempt + 1} 次重试：{e}")
+            time.sleep(2 * (attempt + 1))
+    raise last_error
 def collect_amazon_reviews(
     asin: str,
     max_reviews: int = 3,
-    poll_interval: int = 10,
+    poll_interval: int = 3,
     max_wait: int = 600,
 )-> list[Review]:
     """采集 Amazon 评论并保存到本地 JSON。"""
@@ -64,12 +77,13 @@ def collect_amazon_reviews(
     status_url = f"{BASE_URL}/progress/{snapshot_id}"
 
     while time.monotonic() < deadline:
-        status_response = requests.get(
+        status_response = _get_with_retry(
             status_url,
             headers=headers,
             timeout=30,
+            attempts=3,
         )
-        status_response.raise_for_status()
+
         status_data = status_response.json()
 
         status = status_data.get("status")

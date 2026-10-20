@@ -1,16 +1,19 @@
 import os
 from openai import OpenAI
+from functools import lru_cache
 from dotenv import load_dotenv
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+from app.llm.client import client
+
 load_dotenv()
-client=OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("OPENAI_API_URL"),
-    timeout=520.0,
-    max_retries=2
-)
-def get_embedding(text:str)->list[float]:
-    response=client.embeddings.create(
-        model=os.getenv("EMBEDDING_MODEL"),
+@lru_cache(maxsize=512)
+def _get_embedding_cached(text: str) -> tuple[float, ...]:
+    response = client.embeddings.create(
+        model=EMBEDDING_MODEL,
         input=text,
     )
-    return response.data[0].embedding
+    return tuple(response.data[0].embedding)
+
+
+def get_embedding(text: str) -> list[float]:
+    return list(_get_embedding_cached(text))

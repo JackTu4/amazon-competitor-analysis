@@ -1,4 +1,7 @@
 import json
+from threading import Lock
+_extraction_cache = {}
+_extraction_lock = Lock()
 import logging
 from app.llm.client import client
 from app.models.extraction import ProductExtraction
@@ -10,6 +13,19 @@ logger = logging.getLogger(__name__)
 
 def extract_product(text:str,url:str,title: str):
     text = text[:8000]
+    # 1. 生成缓存键：网址、网页文本
+    cache_key = (url, text)
+
+    # 2. 检查缓存
+    with _extraction_lock:
+        cached_result = _extraction_cache.get(cache_key)
+    if cached_result is not None:
+        logger.debug("命中商品信息提取缓存：%s", url)
+        result = cached_result.model_copy(deep=True)
+        # title 只是来源元数据，不属于提取结果，命中缓存时按本次调用刷新
+        result.source.url = url
+        result.source.title = title
+        return result
     logger.debug("文本长度: %s", len(text))
     logger.debug(text)
     prompt = f"""
@@ -71,8 +87,10 @@ product.form_factor：
 - 如果无法确认，返回 null。
 
 product.model：
-- 只提取网页明确写出的商品型号。
-- 如果无法确认，返回 null。
+- 只提取网页明确写出的商品型号，例如 HFS256GDE9X080N、SN520。
+  - 不得填写 ASIN、SKU 或商品标题中的通用描述。
+  - 如果网页没有明确型号，返回 null。
+
 
 price.amount：
 - 只提取当前商品明确显示的价格。
@@ -123,7 +141,7 @@ reviews：
         "name": null,
         "title": null,
         "asin": null,
-        "brand": null
+        "brand": null,
         "capacity": null,
         "interface": null,
         "form_factor": null,
@@ -173,4 +191,12 @@ reviews：
             bullets.append(item)
     data["bullet_points"] = bullets
     result=ProductExtraction(**data)
+    logger.info(
+        "商品提取结果：输入标题=%r，提取标题=%r，ASIN=%r",
+        title,
+        data.get("product", {}).get("title"),
+        data.get("product", {}).get("asin"),
+    )
+    with _extraction_lock:
+        _extraction_cache[cache_key] = result
     return result

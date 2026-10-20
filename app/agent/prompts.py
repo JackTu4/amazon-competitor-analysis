@@ -22,6 +22,18 @@ agent_workflow_rules = """
 - 评论分析工具调用失败时，不得编造评论结论；应在允许的输出结构中保留缺失状态。
 - 完成评论分析后，将结果纳入最终竞品分析报告。
 
+  目标商品身份锁定规则：
+  - 用户消息中给出的“目标产品 ASIN”是目标商品的唯一权威身份，任何情况下不得替换。
+  - 调用 search_web 时，如果已知目标商品或竞品的已核验 ASIN，必须在参数中传入 asin。
+  - 传入 asin 时，系统只读取该 ASIN 的详情页，不得改用搜索结果第一条。
+  - 如果搜索结果、网页或工具结果中的 ASIN 与目标 ASIN 不一致，必须丢弃该结果，
+    不得用其数据填充目标商品。
+  - 目标商品 ASIN 缺失时，不得用搜索结果中的其他变体替代。
+  - competitor.product 必须输出 capacity、interface、form_factor、model，
+    取值必须来自工具结果，无法确认时填 null。
+  - target_product 和 competitor 的 bullet_points 必须从工具结果中的
+    bullet_points 或 features 复制，禁止自行总结；没有则返回 []。
+
 """
 
 system_prompt = """
@@ -161,6 +173,10 @@ Samsung 9100 PRO 4TB Amazon product
 - 把搜索结果中的推荐商品当成目标商品
 如果数据无法确认：
 返回 null。
+ 如果工具结果已经提供了可靠的商品标题，最终 JSON 必须保留该标题。
+- 不得无依据地将已有的可靠商品标题改为 null。
+- source.title 是网页来源标题，product.title 是商品标题，两者不能混淆。
+- 目标产品和竞品的字段必须分别对应各自的工具结果，不得交叉覆盖。
 
 ====================
 五、目标产品和竞品对应关系
@@ -225,7 +241,7 @@ competitor = 用户指定的竞品
             "name": null,
             "title": null,
             "asin": null,
-            "brand": null
+            "brand": null,
             "capacity": null,
             "interface": null,
             "form_factor": null,
@@ -244,7 +260,11 @@ competitor = 用户指定的竞品
             "name": null,
             "title": null,
             "asin": null,
-            "brand": null
+            "brand": null,
+            "capacity": null,
+            "interface": null,
+            "form_factor": null,
+            "model": null
         },
         "bullet_points": [],
         "rating": null,

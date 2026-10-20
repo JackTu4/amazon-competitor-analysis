@@ -2,6 +2,10 @@ from app.models.review import Review
 from app.llm.client import client
 from app.models.review_analysis import ReviewAnalysis
 import json
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
 def analyze_user_reviews(reviews: list[Review]) -> dict:
     """统计 Amazon 评论，并整理可供后续 LLM 分析的评论内容。"""
 
@@ -61,7 +65,7 @@ def analyze_user_reviews(reviews: list[Review]) -> dict:
 
 def analyze_review_sentiment(
     reviews: list[Review],
-    model: str = "qwen3.7-flash",
+    model: str =os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
 ) -> ReviewAnalysis:
     """调用 LLM 分析用户评论中的痛点、优点和改进建议"""
     review_data = [

@@ -1,9 +1,11 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 from app.agent.competitor_verifier import verify_candidate
 from app.agent.prompts import competitor_discovery_prompt
 from app.llm.client import client
 from app.models.discovery import CompetitorCandidate, CompetitorDiscovery
 import os
+from app.agent.competitor_verifier import extract_asin
 from dotenv import load_dotenv
 load_dotenv()
 def extract_competitors(
@@ -57,6 +59,7 @@ def extract_competitors(
 
     # 校验候选竞品，并转换成数据模型
     extracted_candidates = []
+    used_urls = set()
 
     for item in data.get("candidates", []):
         source_url = item.get("source_url")
@@ -66,6 +69,10 @@ def extract_competitors(
             continue
 
         normalized_url = source_url.rstrip("/").casefold()
+        if normalized_url in used_urls:
+            print("跳过重复来源网址的候选商品：", item.get("product_name"))
+            continue
+        used_urls.add(normalized_url)
         matched_result = results_by_url.get(normalized_url)
 
         if matched_result is None:
@@ -78,22 +85,26 @@ def extract_competitors(
         product_name = (item.get("product_name") or "").casefold()
         brand = (item.get("brand") or "").casefold()
 
-        if (
-            product_name not in page_title
-            and product_name not in page_content
-            and (
-                not brand
-                or (
-                    brand not in page_title
-                    and brand not in page_content
-                )
-            )
+        if not (
+                (product_name and product_name in page_title)
+                or (brand and brand in page_title)
         ):
             print(
                 "跳过标题和摘要均不匹配的候选商品：",
                 item.get("product_name"),
                 "| 网页标题：",
                 matched_result.get("title"),
+            )
+            continue
+        url_asin = extract_asin(source_url)
+        item_asin = (item.get("asin") or "").strip().upper()
+
+        if item_asin and url_asin and item_asin != url_asin:
+            print(
+                "跳过 ASIN 与来源网址不一致的候选商品：",
+                item.get("product_name"),
+                "| 候选 ASIN =", item_asin,
+                "| URL ASIN =", url_asin,
             )
             continue
 
@@ -111,11 +122,29 @@ def extract_competitors(
 
         extracted_candidates.append(candidate)
     # 验证候选竞品
-    verified_candidates = [
-        verify_candidate(candidate, target_product)
-        for candidate in extracted_candidates
-    ]
+    max_candidates_to_verify = 5
+    selected_candidates = extracted_candidates[:max_candidates_to_verify]
 
+    print("提取出的有效候选数量：", len(extracted_candidates))
+    print("本次实际验证数量：", len(selected_candidates))
+
+    def verify_one(candidate):
+        """验证单个候选竞品，避免单个失败中断全部任务。"""
+        try:
+            return verify_candidate(candidate, target_product)
+        except Exception as e:
+            print(
+                f"竞品验证失败：{candidate.product_name}，"
+                f"错误信息：{e}"
+            )
+            return candidate
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        verified_candidates = list(
+            executor.map(
+                verify_one,
+                selected_candidates,
+            )
+       )
     return CompetitorDiscovery(
         target_product=target_product,
         candidates=verified_candidates,

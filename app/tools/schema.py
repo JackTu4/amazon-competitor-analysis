@@ -10,6 +10,10 @@ tools=[
                     "query": {
                         "type": "string",
                         "description": "需要搜索的产品关键词，例如品牌、型号、容量和产品类型"
+                    },
+                    "asin": {
+                        "type": "string",
+                        "description": "该商品已核验的 10 位 ASIN。提供时只读取该 ASIN 的 Amazon 详情页，不再使用搜索结果第一条。"
                     }
                 },
                 "required": ["query"]

@@ -15,7 +15,7 @@ if __name__ == '__main__':
         workflow.add_task(task)
     result = workflow.run(
         {
-            "target_product": "HuaDisk 256GB nvme ssd amazon"
+            "target_product": "HuaDisk 256GB nvme ssd amazon.com.us"
         }
     )
     print(f"完成，报告已保存到：{result}")
