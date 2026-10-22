@@ -101,6 +101,7 @@ def analysis_task(data):
     logger.info("竞品分析任务完成，处理数量：%s", len(analyses))
 
     return {
+        "task_id": data.get("task_id"),
         "target_product": target,
         "analyses": analyses,
     }
@@ -115,20 +116,24 @@ def report_task(result):
     )
     logger.info("执行报告生成任务")
     markdown = generate_markdown(result)
-    path = save_report(markdown)
+    path = save_report(
+        markdown,
+        task_id=result.get("task_id")
+    )
     return path
 
-workflow_tasks=[
-    Task(
-        name="discover_competitors",
-        func=discovery_task,
-    ),
-    Task(
-        name="competitor_analysis",
-        func=analysis_task,
-    ),
-    Task(
-        name="generate_report",
-        func=report_task,
-    )
-]
+def create_workflow_tasks():     #每次调用都会创建三个新的Task对象  而不只是一个
+    return [                     #不同的工作流只能同时修改一个对象，造成任务状态相互覆盖
+        Task(
+            name="discover_competitors",
+            func=discovery_task,
+        ),
+        Task(
+            name="competitor_analysis",
+            func=analysis_task,
+        ),
+        Task(
+            name="generate_report",
+            func=report_task,
+        ),
+    ]

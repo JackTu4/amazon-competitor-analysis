@@ -1,6 +1,9 @@
-from pathlib import Path
-from app.models.competitor import CompetitorAnalysis
 import logging
+import uuid
+from pathlib import Path
+
+from app.models.competitor import CompetitorAnalysis
+
 logger = logging.getLogger(__name__)
 def display(value):
     """将缺失的数据统一显示为暂无数据。"""
@@ -143,8 +146,13 @@ def generate_markdown(data):
     parts.append("未获取到的信息标记为“暂无数据”，不代表该产品不存在相关信息。")
     return "\n\n".join(parts)
 
-def save_report(content):
-    path = Path("reports/report.md")
-    path.parent.mkdir(exist_ok=True, parents=True)
-    path.write_text(content, encoding="utf-8")
+def save_report(content,task_id=None):
+    if task_id is None:
+        task_id=str(uuid.uuid4())
+    path=Path("reports")/f"{task_id}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        content,
+        encoding="utf-8"
+        )
     return path
