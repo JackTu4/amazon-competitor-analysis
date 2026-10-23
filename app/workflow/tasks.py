@@ -97,6 +97,18 @@ def analysis_task(data):
     # 最多同时分析 3 个竞品
     with ThreadPoolExecutor(max_workers=3) as executor:
         analyses = list(executor.map(analyze_one, competitors))
+        successful_analyses = [
+            item
+            for item in analyses
+            if item.get("analysis") is not None
+               and not (
+                    isinstance(item.get("analysis"), dict)
+                    and item["analysis"].get("error")
+            )
+        ]
+
+        if not successful_analyses:
+            raise RuntimeError("所有竞品分析均失败，无法生成有效报告")
 
     logger.info("竞品分析任务完成，处理数量：%s", len(analyses))
 

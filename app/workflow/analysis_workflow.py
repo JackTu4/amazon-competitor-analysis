@@ -26,7 +26,7 @@ class AnalysisWorkflow:
             except Exception as e:
                 task.status="failed"
                 task.error=str(e)
-                logger.error("%s 执行失败: %s", task.name, e)
+                logger.exception("%s 执行失败", task.name)
                 previous_result = {
                     "error": str(e)
                 }
