@@ -1,3 +1,7 @@
+import pytest
+
+pytestmark = pytest.mark.llm
+
 from app.tools.knowledge_tool import search_knowledge
 def test_search_knowledge():
     result=search_knowledge(

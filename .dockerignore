@@ -1,0 +1,36 @@
+# Python 虚拟环境
+.venv/
+venv/
+env/
+
+# Git
+.git/
+
+# PyCharm
+.idea/
+.vscode/
+
+# Python 缓存
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 本地环境变量及密钥
+.env
+.env.*
+!.env.example
+
+# 测试与运行产物
+tests/
+reports/
+logs/
+*.log
+
+# 本地数据库文件
+*.db
+*.sqlite3
+
+# 其他
+.DS_Store

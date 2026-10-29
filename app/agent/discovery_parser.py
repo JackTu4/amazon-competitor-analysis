@@ -116,6 +116,7 @@ def extract_competitors(
             product_type=item.get("product_type"),
             match_reasons=item.get("match_reasons", []),
             source_url=source_url,
+            source_title=matched_result.get("title"),
             confidence=item.get("confidence", 0.5),
             verification_status="待验证",
         )

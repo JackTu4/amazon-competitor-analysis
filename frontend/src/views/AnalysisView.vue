@@ -3,7 +3,7 @@ import { ref, computed, onUnmounted } from "vue"
 import MarkdownIt from "markdown-it"
 import DOMPurify from "dompurify"
 import AnalysisStatus from "../components/AnalysisStatus.vue"
-import ProductForm from "../components/ProductForm.vue"
+import ProductForm from "../components/productForm.vue"
 
 import {
   createAnalysis,

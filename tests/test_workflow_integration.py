@@ -3,6 +3,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from app.workflow.analysis_workflow import AnalysisWorkflow
+from app.workflow.result import WorkflowResult
 from app.workflow.tasks import create_workflow_tasks
 
 from app.models.competitor import (
@@ -60,6 +61,9 @@ def test_workflow_integration(tmp_path, monkeypatch):
         target_asin=None,
         competitor_asin=None,
         competitor_url=None,
+        target_title=None,
+        competitor_title=None,
+        competitor_brand=None,
     ):
         target_info = ProductAnalysis(
             product=Product(
@@ -142,12 +146,16 @@ def test_workflow_integration(tmp_path, monkeypatch):
         # 两个模拟竞品应该调用两次 Agent
         assert mock_agent.call_count == 2
 
-    # 9. 验证工作流返回报告路径
-    assert isinstance(result, (str, Path)), (
-        f"工作流没有返回报告路径：{result}"
+    # 9. 验证工作流返回结构化结果
+    assert isinstance(result, WorkflowResult), (
+        f"工作流没有返回 WorkflowResult：{type(result)}"
     )
 
-    report_path = Path(result)
+    assert len(result.analyses) == 2
+    assert result.failures == []
+    assert result.target_asin == "B0TEST0001"
+
+    report_path = Path(result.report_path)
 
     # 10. 验证报告文件存在
     assert report_path.is_file(), (

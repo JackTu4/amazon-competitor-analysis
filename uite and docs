@@ -1,0 +1,113 @@
+ backend/app/services.py => .dockerignore           |   0
+ .env.example                                       |  35 [32m++++[m
+ .gitignore                                         |  15 [32m+[m[31m-[m
+ app/data/reviews/B0FFHBN5ZQ_reviews.json           | 131 [32m+[m[31m-----------[m
+ app/reporter/markdown.py                           |  62 [32m+++++[m[31m-[m
+ app/workflow/result.py                             |  28 [32m+++[m
+ app/workflow/tasks.py                              |  53 [32m++++[m[31m-[m
+ backend/app/analysis_service.py                    |  80 [31m--------[m
+ backend/app/db/__init__.py                         |   0
+ backend/app/db/crud/__init__.py                    |   0
+ backend/app/db/crud/product.py                     | 150 [32m++++++++++++++[m
+ backend/app/db/crud/project.py                     |  87 [32m++++++++[m
+ backend/app/db/crud/report.py                      |  83 [32m++++++++[m
+ backend/app/db/crud/source.py                      |  94 [32m+++++++++[m
+ backend/app/db/database.py                         |  65 [32m++++++[m
+ backend/app/db/init_db.py                          |  46 [32m+++++[m
+ backend/app/db/models/__init__.py                  |  11 [32m++[m
+ backend/app/db/models/product.py                   |  52 [32m+++++[m
+ backend/app/db/models/project.py                   |  50 [32m+++++[m
+ backend/app/db/models/report.py                    |  29 [32m+++[m
+ backend/app/db/models/source.py                    |  28 [32m+++[m
+ backend/app/main.py                                | 138 [32m++++[m[31m---------[m
+ backend/app/queue/__init__.py                      |   0
+ backend/app/queue/redis_client.py                  |  20 [32m++[m
+ backend/app/queue/rq_config.py                     |  13 [32m++[m
+ backend/app/queue/task_producer.py                 |  18 [32m++[m
+ backend/app/routers.py                             | 118 [32m+++++++++++[m
+ backend/app/security.py                            |  51 [32m+++++[m
+ backend/app/services/__init__.py                   |   0
+ backend/app/services/analysis_service.py           | 145 [32m++++++++++++++[m
+ backend/app/services/report_service.py             |  88 [32m+++++++++[m
+ backend/app/services/result_service.py             | 207 [32m+++++++++++++++++++[m
+ backend/app/services/task_service.py               |  86 [32m++++++++[m
+ backend/app/services/workflow_service.py           |  65 [32m++++++[m
+ backend/app/workers/__init__.py                    |   0
+ backend/app/workers/analysis_jobs.py               |   9 [32m+[m
+ backend/app/workers/worker.py                      |  22 [32m+++[m
+ compose.yaml                                       |   0
+ docker/worker.Dockerfile                           |   0
+ frontend/.env.example                              |   9 [32m+[m
+ frontend/src/components/AnalysisStatus.vue         |   1 [32m+[m
+ .../{productForm.vue => ProductForm.vue}           |   0
+ main.py                                            |   7 [32m+[m[31m-[m
+ pytest.ini                                         |  14 [32m+[m[31m-[m
+ reports/.gitkeep                                   |   0
+ reports/0a54109d-e45f-4af9-aaac-477bde2fff7f.md    |  12 [31m--[m
+ reports/0b0c346b-e49a-4d94-aead-3a80f03d4058.md    |  12 [31m--[m
+ reports/0f539604-55aa-4371-bb62-64f110afb078.md    |  12 [31m--[m
+ reports/1b611ecc-ff2b-41c4-9a99-125740908749.md    |  12 [31m--[m
+ reports/361a2785-ff7c-4c29-a39e-c712be17ecc0.md    |  12 [31m--[m
+ reports/58ad490a-efb2-4072-a0df-ccaf2ce0abef.md    |  12 [31m--[m
+ reports/5c269c6f-8dd5-4daf-adcc-1b281125d187.md    |  12 [31m--[m
+ reports/5d064dab-7548-4978-98a1-6dbe97ccf506.md    |  13 [31m--[m
+ reports/6c5f2741-2de0-4511-adef-39ee1547fb14.md    |  12 [31m--[m
+ reports/6f814ac6-b2ab-4636-b87c-eb77af6a9a8f.md    |  13 [31m--[m
+ reports/7456b302-9413-47e7-a8a5-82cd34e0fef5.md    | 207 [31m-------------------[m
+ reports/8084c6f9-a039-4f24-a886-b7741d5ac1fe.md    |  12 [31m--[m
+ reports/82cf3906-6dbc-47b6-a0ce-8481eaa14e3a.md    |  12 [31m--[m
+ reports/a6fb3d6b-72b7-4a36-83b4-7452637ebdaa.md    |  13 [31m--[m
+ reports/ac4dcc4c-e97b-4993-9e4a-ab03171514e2.md    |  14 [31m--[m
+ reports/b744b7e3-7caf-4fe1-bd52-beb8c1d27303.md    |  12 [31m--[m
+ reports/d95e717c-ce03-4c33-8768-92a8df2b3fc8.md    |  12 [31m--[m
+ reports/e452a208-55ef-46ec-9aee-bba97a8f8c99.md    |  14 [31m--[m
+ reports/eb326c62-13c6-413b-b341-ead14d31fb7a.md    |  13 [31m--[m
+ reports/fd93aaa0-74b9-4ff2-a501-6e824eaa8de2.md    |  12 [31m--[m
+ reports/report.md                                  | 185 [31m-----------------[m
+ reports/test123.md                                 |   1 [31m-[m
+ scripts/init_db.py                                 |  26 [32m+++[m
+ .../test md.py => scripts/manual/check_chunking.py |   4 [32m+[m[31m-[m
+ {tests => scripts/manual}/test_competitor.py       |   6 [32m+[m
+ {tests => scripts/manual}/test_discovery.py        |   2 [32m+[m[31m-[m
+ {tests => scripts/manual}/test_extract_real.py     |   9 [32m+[m[31m-[m
+ {tests => scripts/manual}/test_extraction.py       |   6 [32m+[m
+ {tests => scripts/manual}/test_report.py           |   8 [32m+[m[31m-[m
+ {tests => scripts/manual}/test_task.py             |   6 [32m+[m
+ {tests => scripts/manual}/text_extractor.py        |   8 [32m+[m[31m-[m
+ scripts/manual/web_reader.py                       |  12 [32m++[m
+ tests/conftest.py                                  |  31 [32m+++[m
+ tests/services/__init__.py                         |   0
+ tests/services/test_analysis_create.py             |  61 [32m++++++[m
+ tests/services/test_analysis_status.py             |  75 [32m+++++++[m
+ tests/services/test_report_persistence.py          |  75 [32m+++++++[m
+ tests/services/test_result_persistence.py          | 220 [32m+++++++++++++++++++++[m
+ tests/services/test_task_create_record.py          |  40 [32m++++[m
+ tests/services/test_workflow_service.py            |  68 [32m+++++++[m
+ tests/testDb/test_db_connection.py                 |  19 [32m++[m
+ tests/testDb/test_db_models.py                     |  53 [32m+++++[m
+ tests/test_agent_pipeline.py                       |   4 [32m+[m
+ tests/test_batch_embedding.py                      |   4 [32m+[m
+ tests/{tests => }/test_brightdata_reviews.py       |   0
+ tests/test_crud/test_product_crud.py               | 110 [32m+++++++++++[m
+ tests/test_crud/test_project_crud.py               |  86 [32m++++++++[m
+ tests/test_crud/test_report_crud.py                |  86 [32m++++++++[m
+ tests/test_crud/test_source_crud.py                | 106 [32m++++++++++[m
+ tests/test_embedding.py                            |   4 [32m+[m
+ tests/{tests => }/test_feature_analyzer.py         |   0
+ tests/test_knowledge_tool.py                       |   4 [32m+[m
+ tests/test_product_review_pipeline.py              |   4 [32m+[m
+ tests/test_qa.py                                   |   4 [32m+[m
+ tests/test_real_workflow.py                        |  36 [31m----[m
+ tests/test_redis/test_redis_connection.py          |  33 [32m++++[m
+ tests/test_redis/test_task_producer.py             |  30 [32m+++[m
+ tests/test_reporter.py                             | 113 [32m+++++++++[m[31m--[m
+ tests/{tests => }/test_result_processor.py         |   0
+ tests/test_retriever.py                            |   4 [32m+[m
+ tests/{tests/tests => }/test_review_model.py       |   0
+ tests/{tests => }/test_user_analyzer.py            |   0
+ tests/test_user_analyzer_llm.py                    |   4 [32m+[m
+ tests/test_workflow.py                             |  21 [31m--[m
+ tests/test_workflow_integration.py                 |  13 [32m+[m[31m-[m
+ tests/tests/test_analysis_service.py               | 118 [31m-----------[m
+ tests/web_reader.py                                |   6 [31m-[m
+ 112 files changed, 3099 insertions(+), 1159 deletions(-)

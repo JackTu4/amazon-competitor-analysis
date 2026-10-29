@@ -1,3 +1,7 @@
+import pytest
+
+pytestmark = pytest.mark.llm
+
 from pathlib import Path
 from app.rag.loader import load_document
 from app.rag.chunker import split_text

@@ -1,117 +1,57 @@
-
+import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.schemas import AnalysisRequest, AnalysisResponse
-from backend.app.analysis_service import (
-    analysis_tasks,
-    create_analysis_task,
-)
+from backend.app.routers import router
 
 
+# 1. 读取项目根目录的 .env
+BASE_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(BASE_DIR / ".env")
+
+
+def get_allowed_origins() -> list[str]:
+    """从 ALLOWED_ORIGINS 读取允许的跨域来源，逗号分隔。"""
+
+    raw = os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173",
+    )
+
+    return [
+        origin.strip()
+        for origin in raw.split(",")
+        if origin.strip()
+    ]
+
+
+# 2. 创建 FastAPI 应用
 app = FastAPI(
     title="Amazon 智能竞品分析系统",
     description="提供商品竞品分析任务和报告查询接口",
     version="0.1.0",
 )
 
+# 3. 配置跨域：只放行白名单来源
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_allowed_origins(),
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 
-# 1. 健康检查接口
+# 4. 注册分析业务路由
+app.include_router(router)
+
+
+# 5. 健康检查（不鉴权，供探活使用）
 @app.get("/health")
 def health_check():
     return {
         "status": "ok",
         "message": "Amazon 竞品分析后端运行正常",
-    }
-
-
-# 2. 创建分析任务
-@app.post("/api/analysis", response_model=AnalysisResponse)
-def create_analysis(request: AnalysisRequest):
-
-    target_product = request.target_product.strip()
-
-    if not target_product:
-        raise HTTPException(
-            status_code=422,
-            detail="目标商品名称不能为空",
-        )
-
-    task_id = create_analysis_task(target_product)
-
-    return AnalysisResponse(
-        task_id=task_id,
-        status="pending",
-        message="分析任务已提交，请查询任务状态",
-        target_product=target_product,
-    )
-
-
-# 3. 查询任务状态
-@app.get("/api/analysis/{task_id}")
-def get_analysis_status(task_id: str):
-
-    record = analysis_tasks.get(task_id)
-
-    if record is None:
-        raise HTTPException(
-            status_code=404,
-            detail="未找到该分析任务",
-        )
-
-    return {
-        "task_id": record["task_id"],
-        "target_product": record["target_product"],
-        "status": record["status"],
-        "error": record["error"],
-    }
-
-
-# 4. 获取分析报告
-@app.get("/api/analysis/{task_id}/report")
-def get_analysis_report(task_id: str):
-
-    record = analysis_tasks.get(task_id)
-
-    if record is None:
-        raise HTTPException(
-            status_code=404,
-            detail="未找到该分析任务",
-        )
-
-    if record["status"] == "failed":
-        raise HTTPException(
-            status_code=409,
-            detail=record["error"] or "分析任务执行失败",
-        )
-
-    if record["status"] != "completed":
-        raise HTTPException(
-            status_code=409,
-            detail="分析任务尚未完成",
-        )
-
-    report_path = record["result"]
-
-    if not isinstance(report_path, (str, Path)):
-        raise HTTPException(
-            status_code=500,
-            detail="工作流没有返回有效的报告路径",
-        )
-
-    path = Path(report_path)
-
-    if not path.is_file():
-        raise HTTPException(
-            status_code=404,
-            detail="报告文件不存在",
-        )
-
-    markdown = path.read_text(encoding="utf-8")
-
-    return {
-        "task_id": task_id,
-        "status": "completed",
-        "report": markdown,
     }

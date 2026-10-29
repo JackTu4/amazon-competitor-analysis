@@ -1,3 +1,7 @@
+import pytest
+
+pytestmark = pytest.mark.llm
+
 from app.analyzers.product_review_pipeline import analyze_product_reviews
 
 

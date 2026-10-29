@@ -1,0 +1,2533 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 案例评估搭建手册 · Amazon 智能竞品分析系统</title>
+<style>
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --ink: #1b2430;
+  --muted: #5b6776;
+  --line: #e2e6ec;
+  --accent: #1f5fd0;
+  --accent-soft: #eaf1fd;
+  --ok: #1a7f4b;
+  --ok-soft: #e8f6ee;
+  --warn: #a35400;
+  --warn-soft: #fdf3e3;
+  --danger: #b3261e;
+  --danger-soft: #fdeceb;
+  --code-bg: #0f172a;
+  --code-ink: #e6edf7;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
+  font-size: 15px;
+  line-height: 1.75;
+}
+a { color: var(--accent); }
+.layout {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  max-width: 1280px;
+  margin: 0 auto;
+  gap: 0;
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 28px 18px 40px;
+  border-right: 1px solid var(--line);
+  background: var(--card);
+}
+.brand { font-weight: 700; font-size: 15px; letter-spacing: .02em; }
+.brand small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; margin-top: 2px; }
+.progress-wrap { margin: 18px 0 14px; }
+.progress-track { height: 6px; border-radius: 99px; background: #edf0f4; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; background: var(--ok); transition: width .25s ease; }
+.progress-text { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.nav-item {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 7px 10px; border-radius: 8px;
+  text-decoration: none; color: var(--ink);
+  font-size: 13.5px; line-height: 1.4;
+}
+.nav-item:hover { background: #f2f5fa; }
+.nav-num {
+  flex: 0 0 20px; text-align: center; font-size: 12px;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.nav-item.done .nav-num { color: var(--ok); }
+.nav-item.done .nav-text { color: var(--ok); }
+.nav-item.done .nav-num::after { content: " ✓"; }
+.side-actions { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+.side-actions button {
+  border: 1px solid var(--line); background: #fff; color: var(--muted);
+  border-radius: 8px; padding: 7px 10px; font-size: 12.5px; cursor: pointer;
+}
+.side-actions button:hover { border-color: #c9d2de; color: var(--ink); }
+.side-note { margin-top: 18px; font-size: 11.5px; color: #8b95a3; line-height: 1.6; }
+main { padding: 36px 40px 90px; min-width: 0; }
+.hero { margin-bottom: 26px; }
+.hero h1 { font-size: 30px; line-height: 1.3; margin: 0 0 10px; letter-spacing: -.01em; }
+.hero .sub { font-size: 16px; color: var(--muted); margin: 0 0 14px; }
+.hero .facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fact {
+  font-size: 12.5px; color: var(--muted);
+  background: var(--card); border: 1px solid var(--line);
+  padding: 4px 10px; border-radius: 99px;
+}
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 12px; padding: 20px 22px; margin: 0 0 18px;
+}
+.card h3 { margin: 0 0 10px; font-size: 16px; }
+.card p { margin: 8px 0; }
+.card ul, .card ol { margin: 8px 0; padding-left: 22px; }
+.card li { margin: 4px 0; }
+.section-title {
+  font-size: 20px; margin: 46px 0 6px; padding-top: 8px;
+  letter-spacing: -.01em;
+}
+.section-lead { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+.step {
+  background: var(--card); border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px; padding: 22px 24px; margin: 0 0 22px;
+  scroll-margin-top: 18px;
+}
+.step.done { border-left-color: var(--ok); }
+.step-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.step-num {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px;
+  background: var(--accent-soft); color: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px;
+}
+.step.done .step-num { background: var(--ok-soft); color: var(--ok); }
+.step h2 { font-size: 19px; margin: 0; line-height: 1.4; }
+.time { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 1px 8px; border-radius: 99px; }
+.step h3 { font-size: 14.5px; margin: 18px 0 6px; color: #2c3a4c; }
+.step p { margin: 8px 0; }
+.step ul, .step ol { margin: 8px 0; padding-left: 22px; }
+.step li { margin: 4px 0; }
+.cmdb {
+  position: relative; display: flex; align-items: flex-start; gap: 8px;
+  background: #111827; color: var(--code-ink);
+  border-radius: 8px; padding: 10px 12px 10px 14px; margin: 10px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12.8px; line-height: 1.6; overflow-x: auto;
+}
+.cmdb .prompt { color: #7dd3a0; user-select: none; }
+.cmdb code {
+  white-space: pre; background: none; padding: 0; border-radius: 0;
+  color: inherit; font-size: 1em;
+}
+.cmdb .copy {
+  position: absolute; top: 6px; right: 6px;
+  background: rgba(255,255,255,.1); color: #cbd5e1;
+  border: 0; border-radius: 5px; font-size: 11px; padding: 2px 7px; cursor: pointer;
+}
+.cmdb .copy:hover { background: rgba(255,255,255,.2); }
+.codeblock { margin: 12px 0 16px; border-radius: 10px; overflow: hidden; border: 1px solid #1e293b; }
+.codebar {
+  display: flex; align-items: center; gap: 10px;
+  background: #1b2434; color: #cbd5e1; padding: 7px 12px;
+  font-size: 12px;
+}
+.codebar .filename { font-family: ui-monospace, Menlo, Consolas, monospace; color: #e2e8f0; }
+.codebar .meta { color: #8494ab; margin-left: auto; }
+.codebar .copy {
+  background: #2b3a52; color: #dbe6f5; border: 0; border-radius: 5px;
+  font-size: 11px; padding: 3px 9px; cursor: pointer;
+}
+.codebar .copy:hover { background: #3a4d6b; }
+pre {
+  margin: 0; padding: 14px 16px; background: var(--code-bg); color: var(--code-ink);
+  overflow-x: auto; font-size: 12.4px; line-height: 1.62;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+pre code { white-space: pre; }
+.gate {
+  margin: 16px 0 4px; padding: 14px 16px;
+  background: var(--ok-soft); border: 1px solid #b9e2c9; border-radius: 10px;
+}
+.gate-head { font-weight: 700; color: var(--ok); font-size: 13.5px; margin-bottom: 6px; }
+.gate ul { margin: 0; padding-left: 20px; }
+.gate li { margin: 3px 0; font-size: 14px; }
+.warn {
+  margin: 14px 0; padding: 12px 14px;
+  background: var(--warn-soft); border: 1px solid #f0d9b0; border-radius: 10px;
+  font-size: 14px;
+}
+.warn strong { color: var(--warn); margin-right: 6px; }
+.danger {
+  background: var(--danger-soft); border-color: #f1c6c3;
+}
+.danger strong { color: var(--danger); }
+.check {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 16px; padding: 10px 12px;
+  background: #f8fafc; border: 1px dashed #cfd8e3; border-radius: 9px;
+  font-size: 13.5px; color: var(--muted);
+}
+.check input { width: 17px; height: 17px; accent-color: var(--ok); cursor: pointer; }
+.check label { cursor: pointer; user-select: none; }
+.step.done .check { background: var(--ok-soft); border-color: #bfe4cd; color: var(--ok); }
+table {
+  width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.4px;
+}
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: #f8fafc; font-weight: 600; color: #33404f; font-size: 12.8px; }
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .92em; background: #eef1f6; padding: 1px 5px; border-radius: 4px;
+}
+pre code { background: none; padding: 0; font-size: 1em; }
+.pill { font-size: 11.5px; padding: 1px 8px; border-radius: 99px; white-space: nowrap; }
+.pill.pos { background: var(--accent-soft); color: var(--accent); }
+.pill.neg { background: var(--danger-soft); color: var(--danger); }
+.flow {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.4px; line-height: 1.9; color: #3a4757;
+  background: #f8fafc; border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; white-space: pre;
+}
+.tree {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.6px; line-height: 1.8;
+  background: #f8fafc; border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; white-space: pre;
+}
+.checklist { list-style: none; padding-left: 0 !important; }
+.checklist li { margin: 7px 0 !important; }
+.checklist label { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; }
+.checklist input { margin-top: 5px; width: 16px; height: 16px; accent-color: var(--ok); }
+.qa { border-top: 1px solid var(--line); padding: 16px 0 4px; }
+.qa:first-of-type { border-top: 0; padding-top: 0; }
+.qa .q { font-weight: 700; margin: 0 0 6px; }
+.qa .a { margin: 0; color: #3a4757; }
+.footer { color: #8b95a3; font-size: 12px; margin-top: 40px; }
+.top-link {
+  position: fixed; right: 22px; bottom: 22px;
+  background: #fff; border: 1px solid var(--line); border-radius: 99px;
+  padding: 8px 14px; font-size: 12.5px; color: var(--muted);
+  text-decoration: none; box-shadow: 0 2px 10px rgba(15,23,42,.06);
+}
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  main { padding: 24px 18px 70px; }
+}
+@page { size: A4; margin: 14mm 12mm; }
+@media print {
+  .sidebar, .top-link, .copy, .check { display: none !important; }
+  .layout { display: block; max-width: none; }
+  main { padding: 0; }
+  body { background: #fff; font-size: 11pt; }
+  .step, .card { break-inside: avoid; border: 1px solid #ccc; box-shadow: none; }
+  pre { white-space: pre-wrap; word-break: break-word; font-size: 8.5pt; }
+  .codeblock { break-inside: auto; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body id="top">
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand">评估搭建手册<small>Amazon 竞品分析系统 · 10 案例</small></div>
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-text" id="progress-text">0 / 10 步完成</div>
+  </div>
+  <nav><a class="nav-item" href="#step-1"><span class="nav-num">1</span><span class="nav-text">建目录与包骨架</span></a>
+<a class="nav-item" href="#step-2"><span class="nav-num">2</span><span class="nav-text">framework.py：评估基础设施</span></a>
+<a class="nav-item" href="#step-3"><span class="nav-num">3</span><span class="nav-text">cases.json / pricing.json：10 个案例</span></a>
+<a class="nav-item" href="#step-4"><span class="nav-num">4</span><span class="nav-text">selftest.py：先证明评分是对的</span></a>
+<a class="nav-item" href="#step-5"><span class="nav-num">5</span><span class="nav-text">preflight.py：花钱前先体检</span></a>
+<a class="nav-item" href="#step-6"><span class="nav-num">6</span><span class="nav-text">run_eval.py：一个案例一个进程</span></a>
+<a class="nav-item" href="#step-7"><span class="nav-num">7</span><span class="nav-text">跑通第一个案例并读懂结果</span></a>
+<a class="nav-item" href="#step-8"><span class="nav-num">8</span><span class="nav-text">run_all.py：批量跑完 10 个</span></a>
+<a class="nav-item" href="#step-9"><span class="nav-num">9</span><span class="nav-text">summarize.py：生成汇总与报告</span></a>
+<a class="nav-item" href="#step-10"><span class="nav-num">10</span><span class="nav-text">写结论、归档、下次复跑</span></a></nav>
+  <div class="side-actions">
+    <button id="reset-progress" type="button">重置进度</button>
+    <button type="button" onclick="window.print()">打印 / 导出 PDF</button>
+  </div>
+  <div class="side-note">
+    进度存在浏览器本地。<br>
+    勾选只代表你确认过验收，代码仍要你自己敲或粘贴。
+  </div>
+</aside>
+<main>
+
+
+<div class="hero">
+  <h1>10 案例评估搭建手册</h1>
+  <p class="sub">给「Amazon 智能竞品分析系统」补上一套能复现、能写进简历的离线评估。</p>
+  <div class="facts">
+    <span class="fact">手写代码约 2.5 小时</span>
+    <span class="fact">跑批 40–100 分钟（可后台）</span>
+    <span class="fact">10 个案例：7 正向 + 3 负向</span>
+    <span class="fact">产出 evals/ + report.md</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3>这份手册怎么用</h3>
+  <ol>
+    <li>10 步，每步末尾都有一个「验收」。<strong>验收没过，不要往下走</strong>——尤其是第 4、5 步，
+        它们的作用就是防止你花两小时跑出 10 份废数据。</li>
+    <li>每步给的是<strong>完整文件</strong>：建同名文件，把代码粘进去，执行验收命令。</li>
+    <li>代码里没有需要你改的地方。唯一需要你动脑的是第 3 步：去 Amazon 页面人工记录预期值。</li>
+    <li>左侧可以勾选进度，关掉浏览器再打开还在。</li>
+    <li>文件就在项目里：<code>docs/eval-guide.html</code>，双击用浏览器打开即可，不依赖网络。</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h3>为什么值得做这件事</h3>
+  <p>没有评估的 Agent 项目，面试时只能讲「我实现了什么」。有评估，才能讲
+     <strong>「它有多好、哪里不行、我怎么知道的」</strong>。这三句话是面试官区分
+     「跟着教程做过」和「自己负责过一个系统」的地方。</p>
+  <p>这份评估最终给你三样东西：</p>
+  <ul>
+    <li><strong>可复现的指标</strong>：字段准确率、竞品有效性、任务成功率、耗时、成本，一条命令重跑。</li>
+    <li><strong>失败模式清单</strong>：哪类输入会挂、挂在哪一步、失败时系统是报错还是硬编一个结果。</li>
+    <li><strong>代价画像</strong>：一次分析要多久、花多少钱、钱花在哪个环节。</li>
+  </ul>
+</div>
+
+<h2 class="section-title" id="overview">先看全局：数据怎么流动</h2>
+<p class="section-lead">整套东西只有一条链路，10 个文件都挂在这条链上。</p>
+
+<div class="flow">cases.json               10 个案例的输入与预期值（你唯一要手工填的数据）
+      │
+      ▼
+run_all.py               逐个案例起子进程（隔离进程级缓存）
+      │
+      ▼
+run_eval.py              强制 MOCK_MODE=False → 建任务 → run_analysis → 读库 + 读报告
+      │                         │
+      │                         ├── MySQL：任务状态、商品明细、来源
+      │                         └── reports/&lt;task_id&gt;.md：Markdown 报告
+      ▼
+results/case-XX.json     状态 + 逐字段比对 + 竞品评分 + token + 耗时 + 成本
+      │
+      ▼
+summarize.py             summary.csv（可开 Excel） + report.md（可直接贴进 README）</div>
+
+<div class="card">
+  <h3>最终目录</h3>
+  <div class="tree">evals/
+├── __init__.py          包标记
+├── framework.py         路径、用量统计、评分、成本、落盘
+├── cases.json           10 个案例
+├── pricing.json         单价（默认全 0）
+├── selftest.py          不花钱的评分自检
+├── preflight.py         跑之前的 7 项环境体检
+├── run_eval.py          单个案例：跑一次 + 评分 + 落盘
+├── run_all.py           批量：一个案例一个子进程
+├── summarize.py         汇总：csv + md
+├── results/             case-XX.json / summary.csv / report.md
+└── logs/                case-XX.log</div>
+</div>
+
+<h2 class="section-title" id="metrics">指标口径</h2>
+<p class="section-lead">先把口径定死，后面所有数字才有意义。这六个指标就是你要在简历/面试里引用的全部。</p>
+
+<table>
+<thead><tr><th>指标</th><th>口径</th><th>怎么算</th></tr></thead>
+<tbody>
+<tr>
+  <td>商品字段准确率</td>
+  <td>目标商品的 5 个关键字段：ASIN、品牌、价格、评分、评论数</td>
+  <td>与你人工记录的预期值逐项比对。价格允许 ±5%，评分 ±0.1，评论数 ±max(50, 10%)。
+      只统计你填了预期值的字段；留空 = 不计分。</td>
+</tr>
+<tr>
+  <td>竞品有效性得分</td>
+  <td>前 3 个竞品，每个 6 项检查</td>
+  <td>ASIN 是 10 位 / 不是目标自己 / 品牌与目标不同 / 标题命中类目关键词 /
+      价格评分评论齐全 / 有来源链接。6 项通过率高 = 竞品找得准。</td>
+</tr>
+<tr>
+  <td>信息完整度</td>
+  <td>落库商品的 8 个字段</td>
+  <td>name、title、asin、brand、price、currency、rating、reviews 的填充率。</td>
+</tr>
+<tr>
+  <td>任务成功率</td>
+  <td>端到端是否达成预期</td>
+  <td>正向：completed + 报告非空且不是模拟 + 有效竞品数达标。
+      负向：failed + 有错误信息。</td>
+</tr>
+<tr>
+  <td>耗时</td>
+  <td>一次分析的真实墙钟时间</td>
+  <td>从 run_analysis 开始到返回（含竞品发现、并行分析、报告生成）。</td>
+</tr>
+<tr>
+  <td>API 成本</td>
+  <td>token + 外部调用</td>
+  <td>input/output token × 单价 + embedding token × 单价 + 搜索次数 × 单价
+      + 抓取任务数 × 单价。单价在 pricing.json。</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2 class="section-title" id="cases">10 个案例</h2>
+<p class="section-lead">正向案例看「做得好不好」，负向案例看「会不会硬编」。后者往往才是面试里更值钱的部分。</p>
+<table><thead><tr><th>id</th><th>输入</th><th>类型</th><th>为什么选它</th></tr></thead><tbody><tr><td><code>case-01</code></td><td>HUADISK 256GB NVMe SSD</td><td><span class="pill pos">正向</span></td><td>基线。仓库现有测试就用它，先证明脚本本身跑得通</td></tr><tr><td><code>case-02</code></td><td>Samsung 980 1TB NVMe SSD</td><td><span class="pill pos">正向</span></td><td>强品牌词。检验竞品有没有被同品牌挤占</td></tr><tr><td><code>case-03</code></td><td>Crucial P3 500GB NVMe SSD</td><td><span class="pill pos">正向</span></td><td>型号 + 容量。检验容量不匹配的过滤是否生效</td></tr><tr><td><code>case-04</code></td><td>Kingston NV2 1TB NVMe SSD</td><td><span class="pill pos">正向</span></td><td>性价比品牌，候选池更杂</td></tr><tr><td><code>case-05</code></td><td>SanDisk 128GB microSD card</td><td><span class="pill pos">正向</span></td><td>换类目。检验类目关键词体系是否只能用于 SSD</td></tr><tr><td><code>case-06</code></td><td>Anker 20W USB-C charger</td><td><span class="pill pos">正向</span></td><td>标题里规格噪声多（W / 接口）</td></tr><tr><td><code>case-07</code></td><td>Logitech M185 wireless mouse</td><td><span class="pill pos">正向</span></td><td>低单价、高评论量，压测评论链路与成本</td></tr><tr><td><code>case-08</code></td><td>256GB NVMe SSD</td><td><span class="pill neg">负向</span></td><td>只给规格不给品牌。理想行为是明确失败</td></tr><tr><td><code>case-09</code></td><td>罗技 M185 无线鼠标</td><td><span class="pill neg">负向</span></td><td>中文查询。检验检索链路对非英文输入的处理</td></tr><tr><td><code>case-10</code></td><td>XYZABC 999TB SSD</td><td><span class="pill neg">负向</span></td><td>不存在的商品。理想行为是失败，而不是编一个结果</td></tr></tbody></table>
+
+<div class="warn"><strong>先记住三件事：</strong>
+① <code>MOCK_MODE</code> 默认是 <code>true</code>，不关掉你跑出来的是模拟报告；
+② 报告路径是相对路径，必须在项目根目录执行；
+③ 商品明细落库失败会被日志吞掉，任务照样显示 completed。
+这三条在后面的代码里都已经处理了，但你得知道它们存在，出问题时才知道往哪看。</div>
+
+<h2 class="section-title" id="steps">分步流程</h2>
+<p class="section-lead">按顺序做。每步的验收都是下一层的输入，跳步省下来的时间，会在最后重跑时还回去。</p>
+<section class="step" id="step-1" data-step="1"><div class="step-head"><span class="step-num">1</span><h2>建目录与包骨架</h2><span class="time">约 5 分钟</span></div>
+<h3>目标</h3>
+<p>建出 <code>evals/</code> 包和两个结果目录，让 <code>python -m evals.xxx</code> 能跑起来。</p>
+
+<h3>操作</h3>
+<p>在项目根目录执行（Git Bash）：</p>
+<div class="cmdb"><span class="prompt">$</span><code>cd "E:/Analysis System"</code><button class="copy" type="button">复制</button></div><div class="cmdb"><span class="prompt">$</span><code>mkdir -p evals/results evals/logs</code><button class="copy" type="button">复制</button></div>
+<p>然后在 <code>evals/</code> 下新建 <code>__init__.py</code>：</p>
+<div class="codeblock"><div class="codebar"><span class="filename">__init__.py</span><span class="meta">1 行</span><button class="copy" type="button">复制</button></div><pre><code>"""离线评估套件：10 个案例，真实模式跑通并记录指标。"""</code></pre></div>
+<p>最后把本地产物加进 <code>.gitignore</code>：</p>
+<div class="codeblock">
+<div class="codebar"><span class="filename">.gitignore 追加</span>
+<button class="copy" type="button">复制</button></div>
+<pre><code>evals/logs/
+evals/results/case-*.json</code></pre>
+</div>
+<p>为什么只忽略这两个：<code>logs/</code> 和原始 JSON 会随 Amazon 数据变动而失效，属于本地产物；
+而 <code>summary.csv</code> 和 <code>report.md</code> 是你的<strong>结论证据</strong>，要留下来。</p>
+
+<h3>目录结构长这样</h3>
+<div class="tree">evals/
+├── __init__.py
+├── results/
+└── logs/</div>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-1" type="checkbox"><label for="check-1">这一步的验收过了，我可以往下走</label></div></section>
+<section class="step" id="step-2" data-step="2"><div class="step-head"><span class="step-num">2</span><h2>framework.py：评估基础设施</h2><span class="time">约 20 分钟</span></div>
+<h3>目标</h3>
+<p>用一个文件收口所有「评估基础设施」：路径推导、用量统计、评分规则、成本计算、原子落盘。
+后面的脚本都只调它，不重复写逻辑。</p>
+
+<h3>代码</h3>
+<div class="codeblock"><div class="codebar"><span class="filename">framework.py</span><span class="meta">497 行</span><button class="copy" type="button">复制</button></div><pre><code>"""评估框架公共能力：配置、用量统计、评分、落盘。"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import subprocess
+import sys
+import threading
+from pathlib import Path
+from typing import Any
+
+EVALS_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = EVALS_DIR.parent
+
+# 让 `python -m evals.xxx` 之外的方式也能 import 到 app / backend
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+RESULTS_DIR = EVALS_DIR / "results"
+LOGS_DIR = EVALS_DIR / "logs"
+CASES_PATH = EVALS_DIR / "cases.json"
+PRICING_PATH = EVALS_DIR / "pricing.json"
+
+PRODUCT_FIELDS = (
+    "name",
+    "title",
+    "asin",
+    "brand",
+    "price",
+    "currency",
+    "rating",
+    "reviews",
+)
+SCORED_COMPETITORS = 3
+
+PRICE_TOLERANCE = 0.05
+RATING_TOLERANCE = 0.1
+REVIEWS_TOLERANCE = 0.10
+REVIEWS_FLOOR = 50
+
+logger = logging.getLogger("evals")
+
+
+def ensure_dirs() -&gt; None:
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def load_json(path: Path) -&gt; Any:
+    with path.open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def load_cases() -&gt; list[dict]:
+    cases = load_json(CASES_PATH)
+
+    if not isinstance(cases, list) or not cases:
+        raise ValueError("cases.json 必须是非空数组")
+
+    ids = [case.get("id") for case in cases]
+
+    if any(not case_id for case_id in ids):
+        raise ValueError("每个案例都必须有 id")
+
+    if len(ids) != len(set(ids)):
+        raise ValueError("cases.json 存在重复 id")
+
+    return cases
+
+
+def load_pricing() -&gt; dict:
+    return load_json(PRICING_PATH)
+
+
+def write_json(path: Path, data: Any) -&gt; None:
+    """先写临时文件再替换，避免中途退出留下半个 JSON。"""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_suffix(path.suffix + ".tmp")
+
+    with temp_path.open("w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=2)
+        file.flush()
+        os.fsync(file.fileno())
+
+    temp_path.replace(path)
+
+
+def setup_logging(case_id: str) -&gt; Path:
+    ensure_dirs()
+    log_path = LOGS_DIR / f"{case_id}.log"
+
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+
+    for handler in list(root.handlers):
+        root.removeHandler(handler)
+
+    console = logging.StreamHandler()
+    console.setFormatter(formatter)
+
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+
+    root.addHandler(console)
+    root.addHandler(file_handler)
+
+    return log_path
+
+
+def git_state() -&gt; dict:
+    def run(args: list[str]) -&gt; str:
+        try:
+            completed = subprocess.run(
+                args,
+                cwd=PROJECT_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            return completed.stdout.strip()
+        except Exception:
+            return ""
+
+    changed = [
+        line
+        for line in run(["git", "status", "--short"]).splitlines()
+        if line.strip()
+    ]
+
+    return {
+        "commit": run(["git", "rev-parse", "HEAD"]),
+        "dirty": bool(changed),
+        "changed_files": len(changed),
+    }
+
+
+class UsageTracker:
+    """统计 LLM token 与外部工具调用次数。"""
+
+    def __init__(self) -&gt; None:
+        self._lock = threading.Lock()
+        self._installed = False
+        self.data = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "embedding_tokens": 0,
+            "llm_calls": 0,
+            "embedding_calls": 0,
+            "usage_missing": 0,
+            "tavily_calls": 0,
+            "brightdata_jobs": 0,
+        }
+
+    def add(self, key: str, value: int = 1) -&gt; None:
+        with self._lock:
+            self.data[key] += value
+
+    def snapshot(self) -&gt; dict:
+        with self._lock:
+            return dict(self.data)
+
+    def install(self) -&gt; None:
+        """给 OpenAI SDK 和外部工具打补丁，只影响当前进程。"""
+
+        if self._installed:
+            return
+
+        from openai.resources.chat.completions import Completions
+        from openai.resources.embeddings import Embeddings
+
+        tracker = self
+
+        original_chat = Completions.create
+
+        def chat_create(self, *args, **kwargs):
+            response = original_chat(self, *args, **kwargs)
+            usage = getattr(response, "usage", None)
+
+            with tracker._lock:
+                tracker.data["llm_calls"] += 1
+                if usage is None:
+                    tracker.data["usage_missing"] += 1
+                else:
+                    tracker.data["prompt_tokens"] += (
+                        getattr(usage, "prompt_tokens", 0) or 0
+                    )
+                    tracker.data["completion_tokens"] += (
+                        getattr(usage, "completion_tokens", 0) or 0
+                    )
+
+            return response
+
+        Completions.create = chat_create
+
+        original_embed = Embeddings.create
+
+        def embed_create(self, *args, **kwargs):
+            response = original_embed(self, *args, **kwargs)
+            usage = getattr(response, "usage", None)
+
+            with tracker._lock:
+                tracker.data["embedding_calls"] += 1
+
+                if usage is None:
+                    tracker.data["usage_missing"] += 1
+                    total = 0
+                else:
+                    total = getattr(usage, "total_tokens", None)
+
+                    if total is None:
+                        total = (
+                            getattr(usage, "prompt_tokens", 0) or 0
+                        ) + (
+                            getattr(usage, "completion_tokens", 0) or 0
+                        )
+
+                tracker.data["embedding_tokens"] += total or 0
+
+            return response
+
+        Embeddings.create = embed_create
+
+        try:
+            import app.tools.web_search as web_search
+
+            original_search = web_search.tavily_client.search
+
+            def counted_search(*args, **kwargs):
+                tracker.add("tavily_calls")
+                return original_search(*args, **kwargs)
+
+            web_search.tavily_client.search = counted_search
+        except Exception:
+            logger.exception("Tavily 计数补丁安装失败")
+
+        try:
+            import app.analyzers.product_review_pipeline as review_pipeline
+
+            original_reviews = review_pipeline.collect_amazon_reviews
+
+            def counted_reviews(*args, **kwargs):
+                tracker.add("brightdata_jobs")
+                return original_reviews(*args, **kwargs)
+
+            review_pipeline.collect_amazon_reviews = counted_reviews
+        except Exception:
+            logger.exception("BrightData 计数补丁安装失败")
+
+        self._installed = True
+
+
+def normalize(value: Any) -&gt; str:
+    return str(value or "").strip().casefold()
+
+
+def as_float(value: Any) -&gt; float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def as_int(value: Any) -&gt; int | None:
+    number = as_float(value)
+    return int(number) if number is not None else None
+
+
+def target_field_checks(
+    expected: dict,
+    target: dict | None,
+) -&gt; dict[str, bool | None]:
+    """逐字段比对目标商品。返回 None 表示该字段没有预期值，不参与计分。"""
+
+    checks: dict[str, bool | None] = {}
+
+    expected_asin = normalize(expected.get("target_asin"))
+    actual_asin = normalize((target or {}).get("asin"))
+
+    if not expected_asin:
+        checks["asin"] = None
+    else:
+        checks["asin"] = actual_asin == expected_asin
+
+    expected_brand = normalize(expected.get("brand"))
+    actual_brand = normalize((target or {}).get("brand"))
+
+    if not expected_brand:
+        checks["brand"] = None
+    else:
+        checks["brand"] = bool(actual_brand) and (
+            expected_brand in actual_brand or actual_brand in expected_brand
+        )
+
+    expected_price = as_float(expected.get("price"))
+    actual_price = as_float((target or {}).get("price"))
+
+    if expected_price is None:
+        checks["price"] = None
+    else:
+        checks["price"] = (
+            actual_price is not None
+            and abs(actual_price - expected_price)
+            / max(abs(expected_price), 0.01)
+            &lt;= PRICE_TOLERANCE
+        )
+
+    expected_rating = as_float(expected.get("rating"))
+    actual_rating = as_float((target or {}).get("rating"))
+
+    if expected_rating is None:
+        checks["rating"] = None
+    else:
+        checks["rating"] = (
+            actual_rating is not None
+            and abs(actual_rating - expected_rating) &lt;= RATING_TOLERANCE
+        )
+
+    expected_reviews = as_int(expected.get("reviews"))
+    actual_reviews = as_int((target or {}).get("reviews"))
+
+    if expected_reviews is None:
+        checks["reviews"] = None
+    else:
+        checks["reviews"] = (
+            actual_reviews is not None
+            and abs(actual_reviews - expected_reviews)
+            &lt;= max(REVIEWS_FLOOR, abs(expected_reviews) * REVIEWS_TOLERANCE)
+        )
+
+    return checks
+
+
+def rate_checks(checks: dict[str, bool | None]) -&gt; float | None:
+    scored = [value for value in checks.values() if value is not None]
+
+    if not scored:
+        return None
+
+    return sum(1 for value in scored if value) / len(scored)
+
+
+def competitor_checks(
+    competitor: dict,
+    target: dict | None,
+    expected: dict,
+) -&gt; dict[str, bool | None]:
+    text = f'{competitor.get("title") or ""} {competitor.get("name") or ""}'.lower()
+    keywords = [
+        str(keyword).lower()
+        for keyword in expected.get("category_keywords", [])
+        if keyword
+    ]
+
+    target_asin = normalize((target or {}).get("asin"))
+    target_brand = normalize((target or {}).get("brand"))
+    competitor_brand = normalize(competitor.get("brand"))
+
+    # 品牌写法常带后缀（Samsung / Samsung Electronics），用包含关系判断同一品牌
+    same_brand = (
+        bool(target_brand)
+        and bool(competitor_brand)
+        and (
+            competitor_brand in target_brand
+            or target_brand in competitor_brand
+        )
+    )
+
+    checks: dict[str, bool | None] = {
+        "asin_format": (
+            bool(competitor.get("asin"))
+            and len(str(competitor["asin"]).strip()) == 10
+        ),
+        "not_target": (
+            bool(competitor.get("asin"))
+            and normalize(competitor.get("asin")) != target_asin
+        ),
+        "different_brand": (
+            None
+            if not target_brand
+            else bool(competitor_brand) and not same_brand
+        ),
+        "category": (
+            any(keyword in text for keyword in keywords) if keywords else None
+        ),
+        "fields_present": all(
+            competitor.get(field) is not None
+            for field in ("price", "rating", "reviews")
+        ),
+        "source_present": bool(competitor.get("sources")),
+    }
+
+    return checks
+
+
+def competitor_is_valid(checks: dict[str, bool | None]) -&gt; bool:
+    for field in ("asin_format", "not_target", "different_brand", "category"):
+        if checks[field] is False:
+            return False
+
+    return bool(checks["asin_format"])
+
+
+def score_competitors(
+    competitors: list[dict],
+    target: dict | None,
+    expected: dict,
+) -&gt; dict:
+    scored = competitors[:SCORED_COMPETITORS]
+
+    if not scored:
+        return {"rate": 0.0, "valid_count": 0, "details": []}
+
+    details = []
+    rates = []
+    valid_count = 0
+
+    for competitor in scored:
+        checks = competitor_checks(competitor, target, expected)
+        rate = rate_checks(checks)
+        details.append({
+            "asin": competitor.get("asin"),
+            "name": competitor.get("name"),
+            "checks": checks,
+            "rate": rate,
+        })
+
+        if rate is not None:
+            rates.append(rate)
+
+        valid_count += int(competitor_is_valid(checks))
+
+    return {
+        "rate": sum(rates) / len(rates) if rates else 0.0,
+        "valid_count": valid_count,
+        "details": details,
+    }
+
+
+def completeness(products: list[dict]) -&gt; float:
+    if not products:
+        return 0.0
+
+    filled = sum(
+        1
+        for product in products
+        for field in PRODUCT_FIELDS
+        if product.get(field) not in (None, "")
+    )
+
+    return filled / (len(products) * len(PRODUCT_FIELDS))
+
+
+def report_sections(markdown: str) -&gt; list[str]:
+    return [
+        line.lstrip("#").strip()
+        for line in markdown.splitlines()
+        if line.startswith("#") and line.lstrip("#").strip()
+    ]
+
+
+def compute_cost(usage: dict, pricing: dict) -&gt; dict:
+    llm = (
+        usage.get("prompt_tokens", 0)
+        / 1_000_000
+        * float(pricing.get("llm_input_per_1m", 0))
+    ) + (
+        usage.get("completion_tokens", 0)
+        / 1_000_000
+        * float(pricing.get("llm_output_per_1m", 0))
+    )
+
+    embedding = (
+        usage.get("embedding_tokens", 0)
+        / 1_000_000
+        * float(pricing.get("embedding_per_1m", 0))
+    )
+
+    external = (
+        usage.get("tavily_calls", 0)
+        * float(pricing.get("tavily_per_search", 0))
+    ) + (
+        usage.get("brightdata_jobs", 0)
+        * float(pricing.get("brightdata_per_job", 0))
+    )
+
+    return {
+        "llm": round(llm, 6),
+        "embedding": round(embedding, 6),
+        "external": round(external, 6),
+        "total": round(llm + embedding + external, 6),
+    }</code></pre></div>
+<h3>读这段代码时，只看这 4 个设计点</h3>
+<ol>
+  <li><strong><code>PROJECT_ROOT = evals 的父目录</code></strong>：所有路径都从这里推导。
+      脚本在哪里启动都指向同一个项目根，不会出现「在 A 目录写进 A 的 reports」。</li>
+  <li><strong>用 monkeypatch 统计用量，而不是改业务代码</strong>：评估不应该污染生产路径。
+      补丁只在当前进程有效，进程一退就没了——这也是「一个案例一个进程」的原因之一。</li>
+  <li><strong><code>threading.Lock</code> 不是摆设</strong>：工作流用
+      <code>ThreadPoolExecutor(max_workers=3)</code> 并发分析竞品，计数不加锁会丢。</li>
+  <li><strong>评分返回 <code>None</code> 表示「没有预期值，不计分」</strong>：
+      你还没填的字段不会被当成 0 分，避免自己坑自己。</li>
+</ol>
+
+<div class="warn"><strong>为什么成本默认是 0：</strong>
+<code>pricing.json</code> 里的单价默认全 0。不确定真实单价时保持 0，
+成本显示 $0.0000，远好过拍一个数字。面试被问就直说：token 数是真实测的，单价按公开价目表估。</div>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-2" type="checkbox"><label for="check-2">这一步的验收过了，我可以往下走</label></div></section>
+<section class="step" id="step-3" data-step="3"><div class="step-head"><span class="step-num">3</span><h2>cases.json / pricing.json：10 个案例</h2><span class="time">约 40 分钟</span></div>
+<h3>目标</h3>
+<p>把案例和单价写成数据。以后换案例、加案例，不用改一行代码。</p>
+
+<h3><code>evals/cases.json</code></h3>
+<div class="codeblock"><div class="codebar"><span class="filename">cases.json</span><span class="meta">162 行</span><button class="copy" type="button">复制</button></div><pre><code>[
+  {
+    "id": "case-01",
+    "type": "positive",
+    "target_product": "HUADISK 256GB NVMe SSD",
+    "note": "基线案例，与仓库现有测试数据同名，用来确认评估脚本本身跑得通",
+    "expected": {
+      "target_asin": "",
+      "brand": "HUADISK",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-02",
+    "type": "positive",
+    "target_product": "Samsung 980 1TB NVMe SSD",
+    "note": "国际大牌、型号明确，验证强品牌词下的竞品是否仍是“竞品”而不是同品牌",
+    "expected": {
+      "target_asin": "",
+      "brand": "Samsung",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-03",
+    "type": "positive",
+    "target_product": "Crucial P3 500GB NVMe SSD",
+    "note": "型号 + 容量组合，检查容量不同的商品是否被错误并入",
+    "expected": {
+      "target_asin": "",
+      "brand": "Crucial",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-04",
+    "type": "positive",
+    "target_product": "Kingston NV2 1TB NVMe SSD",
+    "note": "性价比品牌，竞品池通常更杂，观察竞品有效性是否下降",
+    "expected": {
+      "target_asin": "",
+      "brand": "Kingston",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-05",
+    "type": "positive",
+    "target_product": "SanDisk 128GB microSD card",
+    "note": "跨类目：储存卡，检查类目关键词判定是否还能用",
+    "expected": {
+      "target_asin": "",
+      "brand": "SanDisk",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["microsd", "micro sd", "sd card"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-06",
+    "type": "positive",
+    "target_product": "Anker 20W USB-C charger",
+    "note": "3C 配件，标题里规格多（W / 接口），检验字段抽取的抗噪能力",
+    "expected": {
+      "target_asin": "",
+      "brand": "Anker",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["charger", "usb-c", "usb c"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-07",
+    "type": "positive",
+    "target_product": "Logitech M185 wireless mouse",
+    "note": "低单价标品，评论量大，检验评论分析与成本",
+    "expected": {
+      "target_asin": "",
+      "brand": "Logitech",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["mouse", "wireless"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-08",
+    "type": "negative",
+    "target_product": "256GB NVMe SSD",
+    "note": "只给规格不给品牌，看系统会不会硬找一个“目标商品”。理想行为是明确失败",
+    "expected": {
+      "target_asin": "",
+      "brand": "",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 0
+    },
+    "expect": {"success": false}
+  },
+  {
+    "id": "case-09",
+    "type": "negative",
+    "target_product": "罗技 M185 无线鼠标",
+    "note": "中文输入，检验检索链路对非英文查询的处理；失败也算预期内",
+    "expected": {
+      "target_asin": "",
+      "brand": "Logitech",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["mouse", "wireless", "鼠标"],
+      "min_valid_competitors": 0
+    },
+    "expect": {"success": false}
+  },
+  {
+    "id": "case-10",
+    "type": "negative",
+    "target_product": "XYZABC 999TB SSD",
+    "note": "不存在的商品，理想行为是找不到 ASIN 直接失败，而不是编造一个结果",
+    "expected": {
+      "target_asin": "",
+      "brand": "XYZABC",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["ssd"],
+      "min_valid_competitors": 0
+    },
+    "expect": {"success": false}
+  }
+]</code></pre></div>
+<h3><code>evals/pricing.json</code></h3>
+<div class="codeblock"><div class="codebar"><span class="filename">pricing.json</span><span class="meta">10 行</span><button class="copy" type="button">复制</button></div><pre><code>{
+  "currency": "USD",
+  "as_of": "2026-10-28",
+  "note": "按你实际使用的模型和套餐填写。不确定就保持 0：成本显示 0 比编一个数更诚实，面试时也能说清楚这是本地估算。",
+  "llm_input_per_1m": 0,
+  "llm_output_per_1m": 0,
+  "embedding_per_1m": 0,
+  "tavily_per_search": 0,
+  "brightdata_per_job": 0
+}</code></pre></div>
+<h3>怎么填预期值（全流程唯一需要你人工做的事）</h3>
+<ol>
+  <li>浏览器打开 <code>amazon.com</code>，搜索 <code>HUADISK 256GB NVMe SSD</code>。</li>
+  <li>点开和查询最匹配的那个商品详情页。</li>
+  <li><strong>ASIN</strong>：看地址栏里 <code>/dp/</code> 后面那 10 位，例如
+      <code>/dp/B0XXXXXXXX</code> → <code>B0XXXXXXXX</code>。</li>
+  <li><strong>价格</strong>：页面上当前的美元价格，只写数字，例如 <code>27.99</code>。</li>
+  <li><strong>评分</strong>：<code>4.3 out of 5 stars</code> → <code>4.3</code>。</li>
+  <li><strong>评论数</strong>：<code>1,234 ratings</code> → <code>1234</code>。</li>
+  <li>在该案例的 <code>note</code> 末尾写上抓取日期，例如 <code>… ｜ 2026-10-28 抓取</code>。
+      价格和评论数会变，日期是你唯一的解释依据。</li>
+</ol>
+
+<div class="warn"><strong>三条填数据的规矩：</strong>
+① 不知道就留空——留空只是这个字段不计分，填错则直接判错；
+② 三个负向案例（08/09/10）不需要 ASIN，它们预期的结果本来就是失败；
+③ 别用「我印象里大概 30 块」这种数字，预期值必须是你在页面上亲眼看到的。</div>
+
+<div class="warn danger"><strong>负向案例「成功」了怎么办：</strong>
+那不是脚本坏了，是你测出了系统的边界。比如 <code>256GB NVMe SSD</code>（不给品牌）
+系统仍然硬找了一个目标商品并出了报告——这恰恰是值得写进面试的发现：
+「信息不足时系统不会拒绝，会强行产出」。如实记下来，不要为了好看把它判成通过。</div>
+
+<h3>验收</h3>
+<div class="cmdb"><span class="prompt">$</span><code>python -m json.tool evals/cases.json &gt; /dev/null &amp;&amp; python -m json.tool evals/pricing.json &gt; /dev/null &amp;&amp; echo OK</code><button class="copy" type="button">复制</button></div>
+<p>PowerShell 用：<code>python -m json.tool evals/cases.json | Out-Null</code>。</p>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-3" type="checkbox"><label for="check-3">这一步的验收过了，我可以往下走</label></div></section>
+<section class="step" id="step-4" data-step="4"><div class="step-head"><span class="step-num">4</span><h2>selftest.py：先证明评分是对的</h2><span class="time">约 10 分钟</span></div>
+<h3>目标</h3>
+<p>在一分钱不花、一行数据库也不连的前提下，先证明评分逻辑是对的。</p>
+
+<h3>代码</h3>
+<div class="codeblock"><div class="codebar"><span class="filename">selftest.py</span><span class="meta">154 行</span><button class="copy" type="button">复制</button></div><pre><code>"""不花钱的评分自检：只验证纯函数，不连数据库、不调外部 API。
+
+用法：
+    python -m evals.selftest
+"""
+
+from __future__ import annotations
+
+import sys
+
+from evals import framework
+
+
+def test_target_checks() -&gt; None:
+    expected = {
+        "target_asin": "B0TARGET01",
+        "brand": "Samsung",
+        "price": 49.99,
+        "rating": 4.6,
+        "reviews": 12000,
+    }
+    target = {
+        "asin": "B0TARGET01",
+        "brand": "Samsung Electronics",
+        "price": 51.0,
+        "rating": 4.6,
+        "reviews": 12500,
+    }
+
+    checks = framework.target_field_checks(expected, target)
+
+    assert all(value is True for value in checks.values()), checks
+    assert framework.rate_checks(checks) == 1.0
+
+    wrong = framework.target_field_checks(expected, dict(target, asin="B0WRONG001"))
+    assert wrong["asin"] is False
+    assert framework.rate_checks(wrong) == 0.8
+
+    # 预期值留空 -&gt; 不参与计分
+    empty = framework.target_field_checks(
+        {
+            "target_asin": "",
+            "brand": "",
+            "price": None,
+            "rating": None,
+            "reviews": None,
+        },
+        target,
+    )
+    assert all(value is None for value in empty.values()), empty
+    assert framework.rate_checks(empty) is None
+
+    # 目标商品没落库 -&gt; 已填的字段全部判错
+    assert framework.target_field_checks(expected, None)["asin"] is False
+
+
+def test_competitors() -&gt; None:
+    expected = {"category_keywords": ["ssd", "nvme"]}
+    target = {"asin": "B0TARGET01", "brand": "Samsung"}
+
+    good = {
+        "name": "Crucial P3",
+        "title": "Crucial P3 1TB NVMe SSD",
+        "asin": "B0COMPA001",
+        "brand": "Crucial",
+        "price": 45.0,
+        "rating": 4.5,
+        "reviews": 8000,
+        "sources": [{"url": "https://www.amazon.com/dp/B0COMPA001"}],
+    }
+    same_brand = dict(good, asin="B0COMPA002", brand="Samsung Electronics")
+    broken = {"name": "Broken", "title": "Broken", "asin": None, "brand": None}
+    off_category = dict(good, asin="B0COMPA003", title="Sony headphones", brand="Sony")
+
+    score = framework.score_competitors(
+        [good, same_brand, broken, off_category],
+        target,
+        expected,
+    )
+
+    # 只取前 3 个竞品计分
+    assert len(score["details"]) == 3, score["details"]
+    assert score["valid_count"] == 1, score["valid_count"]
+    assert score["details"][0]["rate"] == 1.0
+    assert score["details"][1]["checks"]["different_brand"] is False
+    assert score["details"][2]["checks"]["asin_format"] is False
+
+    assert framework.score_competitors([], target, expected) == {
+        "rate": 0.0,
+        "valid_count": 0,
+        "details": [],
+    }
+
+
+def test_completeness() -&gt; None:
+    assert framework.completeness([]) == 0.0
+
+    half = [{"name": "a", "title": "b"}]
+    assert abs(framework.completeness(half) - 2 / 8) &lt; 1e-9
+
+
+def test_cost() -&gt; None:
+    usage = {
+        "prompt_tokens": 1_000_000,
+        "completion_tokens": 500_000,
+        "embedding_tokens": 2_000_000,
+        "tavily_calls": 10,
+        "brightdata_jobs": 4,
+    }
+    pricing = {
+        "llm_input_per_1m": 1,
+        "llm_output_per_1m": 2,
+        "embedding_per_1m": 0.1,
+        "tavily_per_search": 0.008,
+        "brightdata_per_job": 0.0015,
+    }
+
+    cost = framework.compute_cost(usage, pricing)
+
+    assert cost["llm"] == 2.0, cost
+    assert cost["embedding"] == 0.2, cost
+    assert cost["external"] == 0.086, cost
+    assert cost["total"] == 2.286, cost
+    assert framework.compute_cost({}, {})["total"] == 0.0
+
+
+def test_cases_file() -&gt; None:
+    cases = framework.load_cases()
+
+    assert len(cases) == 10, len(cases)
+    assert [case["id"] for case in cases] == [
+        f"case-{index:02d}" for index in range(1, 11)
+    ]
+
+
+def main() -&gt; int:
+    tests = [
+        test_target_checks,
+        test_competitors,
+        test_completeness,
+        test_cost,
+        test_cases_file,
+    ]
+
+    for test in tests:
+        test()
+        print(f"  ok  {test.__name__}")
+
+    print("评分逻辑自检通过")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre></div>
+<h3>为什么必须先跑它</h3>
+<p>评分写错，后面 10 个案例跑出来的数据全是废的；而重跑一轮要 1 小时、还要再花一次 API 钱。
+这 20 分钟是整条流程里性价比最高的一步。</p>
+
+<h3>验收</h3>
+<div class="cmdb"><span class="prompt">$</span><code>python -m evals.selftest</code><button class="copy" type="button">复制</button></div>
+<p>期望最后一行：<code>评分逻辑自检通过</code>，上面 5 个 <code>ok</code>。</p>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-4" type="checkbox"><label for="check-4">这一步的验收过了，我可以往下走</label></div></section>
+<section class="step" id="step-5" data-step="5"><div class="step-head"><span class="step-num">5</span><h2>preflight.py：花钱前先体检</h2><span class="time">约 10 分钟</span></div>
+<h3>目标</h3>
+<p>把环境问题挡在花钱之前：<code>.env</code> 是否齐全、<code>MOCK_MODE</code> 能不能关、MySQL 通不通、
+<code>reports/</code> 能不能写、案例文件能不能解析。</p>
+
+<h3>代码</h3>
+<div class="codeblock"><div class="codebar"><span class="filename">preflight.py</span><span class="meta">179 行</span><button class="copy" type="button">复制</button></div><pre><code>"""跑评估前的自检：不花一分钱，先把环境问题挡在前面。
+
+用法：
+    python -m evals.preflight
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+from evals import framework
+
+REQUIRED_ENV = (
+    "OPENAI_API_KEY",
+    "OPENAI_API_URL",
+    "TAVILY_API_KEY",
+    "BRIGHTDATA_API_KEY",
+    "EMBEDDING_MODEL",
+    "DB_HOST",
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_NAME",
+)
+REQUIRED_TABLES = {"projects", "products", "sources", "reports"}
+
+
+def report(name: str, ok: bool, detail: str = "") -&gt; bool:
+    mark = "PASS" if ok else "FAIL"
+    print(f"[{mark}] {name}{('：' + detail) if detail else ''}")
+    return ok
+
+
+def check_env_file() -&gt; bool:
+    path = framework.PROJECT_ROOT / ".env"
+    return report(".env 存在", path.is_file(), str(path))
+
+
+def check_env_keys() -&gt; bool:
+    missing = [key for key in REQUIRED_ENV if not os.getenv(key)]
+    return report(
+        ".env 必需项齐全",
+        not missing,
+        "缺少 " + ", ".join(missing) if missing else f"{len(REQUIRED_ENV)} 项都有值",
+    )
+
+
+def check_mock_switch() -&gt; bool:
+    from backend.app.services import analysis_service
+
+    analysis_service.MOCK_MODE = False
+
+    return report(
+        "MOCK_MODE 可强制关闭",
+        analysis_service.MOCK_MODE is False,
+        "当前为 False，会走真实工作流",
+    )
+
+
+def check_database() -&gt; bool:
+    from sqlalchemy import inspect, text
+
+    from backend.app.db.database import engine
+
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+
+    tables = set(inspect(engine).get_table_names())
+    missing = REQUIRED_TABLES - tables
+
+    if missing:
+        return report(
+            "MySQL 可连接且表结构完整",
+            False,
+            "缺少表 " + ", ".join(sorted(missing))
+            + "；先执行 python -m backend.app.db.init_db",
+        )
+
+    return report("MySQL 可连接且表结构完整", True, "4 张表都在")
+
+
+def check_reports_dir() -&gt; bool:
+    path = framework.PROJECT_ROOT / "reports"
+    path.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.NamedTemporaryFile(
+        dir=path,
+        prefix=".eval-check-",
+        suffix=".tmp",
+        delete=True,
+    ):
+        pass
+
+    return report("reports/ 可写", True, str(path))
+
+
+def check_cases() -&gt; bool:
+    cases = framework.load_cases()
+    ok = report("cases.json 可解析", True, f"{len(cases)} 个案例")
+
+    if not ok:
+        return False
+
+    unfinished = []
+
+    for case in cases:
+        expected = case.get("expected", {})
+        missing = [
+            field
+            for field in ("target_asin", "price", "rating", "reviews")
+            if expected.get(field) in (None, "")
+        ]
+
+        if missing:
+            unfinished.append(f"{case['id']}（缺 {', '.join(missing)}）")
+
+    if unfinished:
+        print("  注意：以下案例的预期值还没填，跑之前先补齐，否则这些字段不计分：")
+        for item in unfinished:
+            print(f"    - {item}")
+
+    return ok
+
+
+def check_pricing() -&gt; bool:
+    pricing = framework.load_pricing()
+    zero = [
+        key
+        for key, value in pricing.items()
+        if key.endswith(("_per_1m", "_per_search", "_per_job"))
+        and not float(value)
+    ]
+
+    detail = "全部单价为 0，成本会显示 0" if zero else "单价已填写"
+
+    return report("pricing.json 可解析", True, detail)
+
+
+def main() -&gt; int:
+    load_dotenv(framework.PROJECT_ROOT / ".env")
+    os.chdir(framework.PROJECT_ROOT)
+    framework.ensure_dirs()
+
+    print("== 评估环境自检 ==\n")
+
+    checks = [
+        ("env_file", check_env_file),
+        ("env_keys", check_env_keys),
+        ("mock", check_mock_switch),
+        ("db", check_database),
+        ("reports", check_reports_dir),
+        ("cases", check_cases),
+        ("pricing", check_pricing),
+    ]
+
+    passed = 0
+
+    for _, func in checks:
+        try:
+            passed += int(bool(func()))
+        except Exception as exc:
+            report(func.__name__, False, f"{type(exc).__name__}: {exc}")
+
+    print(f"\n自检结果：{passed}/{len(checks)} 通过")
+
+    if passed != len(checks):
+        print("修完再跑评估，否则跑出来的数据不可信。")
+        return 1
+
+    print("可以开始跑评估：python -m evals.run_eval --case case-01")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre></div>
+<h3>验收</h3>
+<div class="cmdb"><span class="prompt">$</span><code>python -m evals.preflight</code><button class="copy" type="button">复制</button></div>
+<p>期望：7 项全部 <code>PASS</code>，最后一行 <code>自检结果：7/7 通过</code>。</p>
+<p>它还会列出「预期值还没填」的案例。填完 7 个正向案例的四个字段再往下走；
+负向案例不用填。</p>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-5" type="checkbox"><label for="check-5">这一步的验收过了，我可以往下走</label></div></section>
+<section class="step" id="step-6" data-step="6"><div class="step-head"><span class="step-num">6</span><h2>run_eval.py：一个案例一个进程</h2><span class="time">约 20 分钟</span></div>
+<h3>目标</h3>
+<p>一个案例 = 一个进程 = 一份 JSON。运行、判分、落盘都在这里。</p>
+
+<h3>代码</h3>
+<div class="codeblock"><div class="codebar"><span class="filename">run_eval.py</span><span class="meta">289 行</span><button class="copy" type="button">复制</button></div><pre><code>"""单个评估案例的运行器：真实模式跑一次完整分析，评分后落盘。
+
+用法：
+    python -m evals.run_eval --case case-01
+    python -m evals.run_eval --case case-01 --force
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import os
+import platform
+import sys
+import time
+import traceback
+from datetime import datetime, timezone
+from pathlib import Path
+from uuid import uuid4
+
+from dotenv import load_dotenv
+
+from evals import framework
+
+logger = logging.getLogger("evals.run_eval")
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description="运行单个评估案例")
+    parser.add_argument("--case", required=True, help="案例 id，例如 case-01")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="覆盖已存在的结果文件",
+    )
+    return parser.parse_args()
+
+
+def find_case(cases: list[dict], case_id: str) -&gt; dict:
+    for case in cases:
+        if case["id"] == case_id:
+            return case
+
+    raise SystemExit(
+        f"找不到案例 {case_id}，可用："
+        + ", ".join(case["id"] for case in cases)
+    )
+
+
+def resolve_report_path(raw: str | None) -&gt; Path | None:
+    if not raw:
+        return None
+
+    path = Path(raw)
+
+    if not path.is_absolute():
+        path = framework.PROJECT_ROOT / path
+
+    return path
+
+
+def read_report(path: Path | None) -&gt; str:
+    if path is None or not path.is_file():
+        return ""
+
+    try:
+        return path.read_text(encoding="utf-8")
+    except Exception:
+        logger.exception("读取报告失败：%s", path)
+        return ""
+
+
+def judge(
+    case: dict,
+    status: str | None,
+    error: str | None,
+    report_text: str,
+    competitor_score: dict,
+) -&gt; tuple[bool, list[str]]:
+    expect_success = bool(case.get("expect", {}).get("success", True))
+    reasons: list[str] = []
+
+    if not expect_success:
+        if status != "failed":
+            reasons.append(f"预期失败，实际状态为 {status}")
+
+        if not error:
+            reasons.append("预期失败，但没有错误信息")
+
+        return not reasons, reasons
+
+    if status != "completed":
+        reasons.append(f"任务未完成，状态为 {status}")
+
+    if not report_text.strip():
+        reasons.append("报告为空或文件不存在")
+
+    if "（模拟）" in report_text:
+        reasons.append("报告是 MOCK 产物，说明没有真正走真实工作流")
+
+    min_valid = int(case.get("expected", {}).get("min_valid_competitors", 0))
+
+    if competitor_score["valid_count"] &lt; min_valid:
+        reasons.append(
+            f"有效竞品 {competitor_score['valid_count']} 个，"
+            f"少于预期 {min_valid} 个"
+        )
+
+    return not reasons, reasons
+
+
+def main() -&gt; int:
+    args = parse_args()
+
+    cases = framework.load_cases()
+    case = find_case(cases, args.case)
+    case_id = case["id"]
+
+    framework.ensure_dirs()
+    setup_log_path = framework.setup_logging(case_id)
+
+    result_path = framework.RESULTS_DIR / f"{case_id}.json"
+
+    if result_path.exists() and not args.force:
+        print(
+            f"结果已存在：{result_path}\n"
+            "如需覆盖请加 --force"
+        )
+        return 1
+
+    # 1. 读 .env，并固定工作目录（报告写入 reports/ 相对路径）
+    load_dotenv(framework.PROJECT_ROOT / ".env")
+    os.chdir(framework.PROJECT_ROOT)
+
+    # 2. 强制真实模式：MOCK_MODE 在 import 时按环境变量取值，默认 true
+    from backend.app.services import analysis_service
+
+    analysis_service.MOCK_MODE = False
+
+    if analysis_service.MOCK_MODE is not False:
+        raise SystemExit("MOCK_MODE 未能切换为 False，评估无效")
+
+    # 3. 装上计量补丁
+    tracker = framework.UsageTracker()
+    tracker.install()
+
+    from backend.app.services.result_service import get_analysis_products
+    from backend.app.services.task_service import (
+        create_task_record,
+        get_analysis_task,
+    )
+
+    pricing = framework.load_pricing()
+    expected = case.get("expected", {})
+
+    task_id = str(uuid4())
+    started_at = datetime.now(timezone.utc)
+    logger.info("=== 案例 %s 开始，task_id=%s ===", case_id, task_id)
+    logger.info("目标商品：%s", case["target_product"])
+
+    create_task_record(
+        task_id=task_id,
+        target_product=case["target_product"],
+    )
+
+    error: str | None = None
+    trace: str | None = None
+    start_clock = time.perf_counter()
+
+    try:
+        analysis_service.run_analysis(task_id, case["target_product"])
+    except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"
+        trace = traceback.format_exc()
+        logger.exception("案例 %s 运行失败", case_id)
+
+    duration = round(time.perf_counter() - start_clock, 2)
+
+    # 4. 读结果：任务状态、商品明细、报告
+    record = get_analysis_task(task_id) or {}
+    products = get_analysis_products(task_id)
+    status = record.get("status")
+    result_field = record.get("result")
+
+    if not error and record.get("error"):
+        error = str(record["error"])
+
+    report_path = resolve_report_path(result_field)
+    report_text = read_report(report_path)
+
+    target = next(
+        (product for product in products if product.get("role") == "target"),
+        None,
+    )
+    competitors = [
+        product for product in products if product.get("role") == "competitor"
+    ]
+
+    target_checks = framework.target_field_checks(expected, target)
+    target_rate = framework.rate_checks(target_checks)
+    competitor_score = framework.score_competitors(competitors, target, expected)
+    completeness_rate = framework.completeness(products)
+    usage = tracker.snapshot()
+    cost = framework.compute_cost(usage, pricing)
+
+    success, reasons = judge(
+        case=case,
+        status=status,
+        error=error,
+        report_text=report_text,
+        competitor_score=competitor_score,
+    )
+
+    notes = []
+
+    if status == "completed" and not products:
+        notes.append(
+            "任务完成但商品明细为空：可能落库失败被吞掉了，查日志确认"
+        )
+
+    result = {
+        "case_id": case_id,
+        "case_type": case.get("type", "positive"),
+        "target_product": case["target_product"],
+        "note": case.get("note", ""),
+        "task_id": task_id,
+        "started_at": started_at.isoformat(),
+        "duration_seconds": duration,
+        "status": status,
+        "error": error,
+        "success": success,
+        "failure_reasons": reasons,
+        "notes": notes,
+        "expected": expected,
+        "actual": {
+            "target": target,
+            "competitors": competitors,
+            "product_count": len(products),
+        },
+        "scores": {
+            "target_field_checks": target_checks,
+            "target_field_accuracy": target_rate,
+            "competitor": competitor_score,
+            "completeness": round(completeness_rate, 4),
+        },
+        "report": {
+            "path": str(report_path) if report_path else None,
+            "exists": bool(report_text),
+            "chars": len(report_text),
+            "sections": framework.report_sections(report_text),
+            "has_failure_appendix": "未完成分析的竞品" in report_text,
+        },
+        "usage": usage,
+        "cost_usd": cost,
+        "runtime": {
+            "python": platform.python_version(),
+            "llm_model": os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
+            "embedding_model": os.getenv("EMBEDDING_MODEL"),
+            "mock_mode": analysis_service.MOCK_MODE,
+            "git": framework.git_state(),
+            "pricing": pricing,
+            "log_path": str(setup_log_path),
+        },
+    }
+
+    if trace:
+        result["traceback"] = trace
+
+    framework.write_json(result_path, result)
+
+    logger.info(
+        "=== 案例 %s 结束：success=%s status=%s 耗时=%ss 成本=$%s ===",
+        case_id,
+        success,
+        status,
+        duration,
+        cost["total"],
+    )
+
+    if not success:
+        for reason in reasons:
+            logger.warning("失败原因：%s", reason)
+
+    print(f"结果已写入 {result_path}")
+    return 0 if success else 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre></div>
+<h3>三个必须看懂的坑（代码里已经处理）</h3>
+<ol>
+  <li><strong><code>MOCK_MODE</code> 默认 true</strong>，而且在 import 时就取了值。
+      所以脚本在 import 之后强行改 False，并且立刻断言。不这样的话你会得到一份
+      「模拟报告 + completed 状态」，看起来一切正常，实际什么都没验证。</li>
+  <li><strong>报告是相对路径</strong>（<code>reports/&lt;task_id&gt;.md</code>），
+      而 <code>run_analysis</code> 会用 <code>Path(report_path).is_file()</code> 检查。
+      必须在调用前 <code>os.chdir(PROJECT_ROOT)</code>，否则任务直接 failed。</li>
+  <li><strong>落库异常被吞掉</strong>：<code>analysis_service</code> 对
+      <code>save_analysis_results</code> 失败只记日志、不改状态。所以这里单独检查
+      「completed 但没有商品明细」，写进 <code>notes</code>。</li>
+</ol>
+
+<h3>验收</h3>
+<div class="cmdb"><span class="prompt">$</span><code>python -m evals.run_eval --help</code><button class="copy" type="button">复制</button></div>
+<p>能看到 <code>--case</code> 和 <code>--force</code> 两个参数即可。<strong>这一步先别真跑</strong>，
+下一步单独跑 case-01。</p>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-6" type="checkbox"><label for="check-6">这一步的验收过了，我可以往下走</label></div></section>
+<section class="step" id="step-7" data-step="7"><div class="step-head"><span class="step-num">7</span><h2>跑通第一个案例并读懂结果</h2><span class="time">约 15 分钟</span></div>
+<h3>目标</h3>
+<p>用最小代价确认整条链路是通的：先跑一个案例，看它到底产出了什么。</p>
+
+<h3>操作</h3>
+<div class="cmdb"><span class="prompt">$</span><code>python -m evals.run_eval --case case-01</code><button class="copy" type="button">复制</button></div>
+<p>预计 3–10 分钟。同时它会写 <code>evals/logs/case-01.log</code>，另开一个窗口盯日志：</p>
+<div class="cmdb"><span class="prompt">$</span><code>tail -f evals/logs/case-01.log</code><button class="copy" type="button">复制</button></div>
+<h3>然后读 <code>evals/results/case-01.json</code></h3>
+<p>重点看这 6 个字段，其余先不管：</p>
+<table>
+<thead><tr><th>字段</th><th>正常应该是什么</th><th>不对时说明什么</th></tr></thead>
+<tbody>
+<tr><td><code>runtime.mock_mode</code></td><td><code>false</code></td>
+    <td>是 <code>true</code> → 你被 MOCK 骗了，删掉结果重跑</td></tr>
+<tr><td><code>status</code></td><td><code>completed</code></td>
+    <td><code>failed</code> → 看 <code>error</code>，再翻日志</td></tr>
+<tr><td><code>scores.target_field_checks</code></td><td>你填过的字段为 <code>true</code></td>
+    <td><code>false</code> → 目标商品识别错了，或字段抽取错了</td></tr>
+<tr><td><code>scores.competitor.valid_count</code></td><td>≥ 2</td>
+    <td>0–1 → 竞品发现质量不行，这是真问题</td></tr>
+<tr><td><code>actual.product_count</code></td><td>≥ 3（1 目标 + 竞品）</td>
+    <td>0 → 落库被吞了，搜日志里的「分析明细落库失败」</td></tr>
+<tr><td><code>cost_usd.total</code></td><td>≥ 0</td>
+    <td>如果单价是 0，这里就是 0，正常</td></tr>
+</tbody>
+</table>
+
+<h3>验收</h3>
+<p><code>results/case-01.json</code> 存在，且 <code>runtime.mock_mode</code> 是 <code>false</code>。</p>
+<p>case-01 没通过也先别急着改代码：先看 <code>failure_reasons</code> 写了什么。
+如果失败原因是「有效竞品 0 个」，那是系统能力问题，不是脚本问题——照样可以继续跑完全部案例，
+这批数据本身就是你的结论。</p>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-7" type="checkbox"><label for="check-7">这一步的验收过了，我可以往下走</label></div></section>
+<section class="step" id="step-8" data-step="8"><div class="step-head"><span class="step-num">8</span><h2>run_all.py：批量跑完 10 个</h2><span class="time">约 10 分钟 + 跑批</span></div>
+<h3>目标</h3>
+<p>批量跑，并且保证案例之间互不污染。</p>
+
+<h3>代码</h3>
+<div class="codeblock"><div class="codebar"><span class="filename">run_all.py</span><span class="meta">119 行</span><button class="copy" type="button">复制</button></div><pre><code>"""批量运行全部案例：每个案例独立子进程，跑完自动汇总。
+
+用法：
+    python -m evals.run_all
+    python -m evals.run_all --only case-01,case-02
+    python -m evals.run_all --force
+"""
+
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+import time
+
+from evals import framework
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description="批量运行评估案例")
+    parser.add_argument(
+        "--only",
+        default="",
+        help="只跑指定案例，逗号分隔，例如 case-01,case-02",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="已存在结果也重跑",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=1800,
+        help="单个案例超时秒数，默认 1800",
+    )
+    parser.add_argument(
+        "--sleep",
+        type=int,
+        default=5,
+        help="两个案例之间的间隔秒数，默认 5",
+    )
+    return parser.parse_args()
+
+
+def selected_cases(only: str) -&gt; list[dict]:
+    cases = framework.load_cases()
+
+    if not only.strip():
+        return cases
+
+    wanted = {item.strip() for item in only.split(",") if item.strip()}
+    chosen = [case for case in cases if case["id"] in wanted]
+    missing = wanted - {case["id"] for case in chosen}
+
+    if missing:
+        raise SystemExit(f"cases.json 里没有这些 id：{sorted(missing)}")
+
+    return chosen
+
+
+def main() -&gt; int:
+    args = parse_args()
+    cases = selected_cases(args.only)
+
+    framework.ensure_dirs()
+
+    failed: list[str] = []
+    skipped: list[str] = []
+
+    for index, case in enumerate(cases, start=1):
+        case_id = case["id"]
+        result_path = framework.RESULTS_DIR / f"{case_id}.json"
+
+        if result_path.exists() and not args.force:
+            skipped.append(case_id)
+            print(f"[{index}/{len(cases)}] 跳过 {case_id}：结果已存在")
+            continue
+
+        print(f"[{index}/{len(cases)}] 运行 {case_id}：{case['target_product']}")
+
+        command = [
+            sys.executable,
+            "-m",
+            "evals.run_eval",
+            "--case",
+            case_id,
+            "--force",
+        ]
+
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=framework.PROJECT_ROOT,
+                timeout=args.timeout,
+            )
+        except subprocess.TimeoutExpired:
+            print(f"  -&gt; 超时（&gt;{args.timeout}s）")
+            failed.append(case_id)
+            continue
+
+        if completed.returncode != 0:
+            failed.append(case_id)
+
+        if index &lt; len(cases):
+            time.sleep(args.sleep)
+
+    print("\n完成。")
+    print(f"跑完：{len(cases) - len(skipped)} 个，跳过：{len(skipped)} 个")
+
+    if failed:
+        print(f"未通过或异常：{', '.join(failed)}")
+
+    print("下一步：python -m evals.summarize")
+    return 0 if not failed else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre></div>
+<h3>为什么必须一个案例一个子进程</h3>
+<p>系统里有三处<strong>进程级缓存</strong>：网页搜索缓存、评论 single-flight 缓存、RAG 检索缓存。
+同一个进程里跑第二个案例，很可能直接复用上一个案例的搜索结果和评论——
+看起来「很快、很便宜」，实际测的是一份被污染的数据。</p>
+
+<h3>先小后大</h3>
+<div class="cmdb"><span class="prompt">$</span><code>python -m evals.run_all --only case-01,case-02</code><button class="copy" type="button">复制</button></div>
+<p>两个都正常，再全量：</p>
+<div class="cmdb"><span class="prompt">$</span><code>python -m evals.run_all</code><button class="copy" type="button">复制</button></div>
+<p>预计 40–100 分钟（单案例 3–10 分钟 × 10）。建议放后台跑，期间去写第 10 步的结论框架。</p>
+
+<div class="warn"><strong>中断了不用重来：</strong>
+已生成的 <code>case-XX.json</code> 会被自动跳过，重新执行同一条命令即可。
+这就是 <code>run_all.py</code> 里 <code>if result_path.exists() and not args.force</code> 的作用。
+想强制重跑某个案例，单独用 <code>run_eval --case case-05 --force</code>。</div>
+
+<h3>验收</h3>
+<div class="cmdb"><span class="prompt">$</span><code>ls evals/results/case-*.json | wc -l</code><button class="copy" type="button">复制</button></div>
+<p>输出 <code>10</code>。少一个就单独补跑那一个。</p>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-8" type="checkbox"><label for="check-8">这一步的验收过了，我可以往下走</label></div></section>
+<section class="step" id="step-9" data-step="9"><div class="step-head"><span class="step-num">9</span><h2>summarize.py：生成汇总与报告</h2><span class="time">约 10 分钟</span></div>
+<h3>目标</h3>
+<p>把 10 份 JSON 变成一张表 + 一份能给人看的报告。</p>
+
+<h3>代码</h3>
+<div class="codeblock"><div class="codebar"><span class="filename">summarize.py</span><span class="meta">285 行</span><button class="copy" type="button">复制</button></div><pre><code>"""汇总 results/case-*.json，生成 summary.csv 与 report.md。
+
+用法：
+    python -m evals.summarize
+"""
+
+from __future__ import annotations
+
+import csv
+import sys
+from datetime import datetime, timezone
+from statistics import mean
+
+from evals import framework
+
+CSV_FIELDS = [
+    "case_id",
+    "case_type",
+    "target_product",
+    "status",
+    "success",
+    "duration_seconds",
+    "target_field_accuracy",
+    "competitor_rate",
+    "valid_competitors",
+    "product_count",
+    "completeness",
+    "llm_calls",
+    "prompt_tokens",
+    "completion_tokens",
+    "embedding_tokens",
+    "tavily_calls",
+    "brightdata_jobs",
+    "cost_usd",
+    "failure_reasons",
+]
+
+
+def format_number(value: float | None, digits: int = 3) -&gt; str:
+    return "" if value is None else f"{value:.{digits}f}"
+
+
+def load_results() -&gt; list[dict]:
+    files = sorted(framework.RESULTS_DIR.glob("case-*.json"))
+    results = []
+
+    for path in files:
+        try:
+            results.append(framework.load_json(path))
+        except Exception:
+            print(f"跳过无法解析的文件：{path}")
+
+    return results
+
+
+def row_of(result: dict) -&gt; dict:
+    scores = result.get("scores", {})
+    usage = result.get("usage", {})
+    competitor = scores.get("competitor", {})
+
+    return {
+        "case_id": result.get("case_id"),
+        "case_type": result.get("case_type"),
+        "target_product": result.get("target_product"),
+        "status": result.get("status"),
+        "success": "通过" if result.get("success") else "未通过",
+        "duration_seconds": format_number(result.get("duration_seconds"), 1),
+        "target_field_accuracy": format_number(
+            scores.get("target_field_accuracy")
+        ),
+        "competitor_rate": format_number(competitor.get("rate")),
+        "valid_competitors": competitor.get("valid_count"),
+        "product_count": result.get("actual", {}).get("product_count"),
+        "completeness": format_number(scores.get("completeness")),
+        "llm_calls": usage.get("llm_calls", 0),
+        "prompt_tokens": usage.get("prompt_tokens", 0),
+        "completion_tokens": usage.get("completion_tokens", 0),
+        "embedding_tokens": usage.get("embedding_tokens", 0),
+        "tavily_calls": usage.get("tavily_calls", 0),
+        "brightdata_jobs": usage.get("brightdata_jobs", 0),
+        "cost_usd": format_number(result.get("cost_usd", {}).get("total"), 4),
+        "failure_reasons": "；".join(result.get("failure_reasons", [])),
+    }
+
+
+def write_csv(results: list[dict]) -&gt; None:
+    path = framework.RESULTS_DIR / "summary.csv"
+
+    with path.open("w", encoding="utf-8-sig", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+
+        for result in results:
+            writer.writerow(row_of(result))
+
+    print(f"已写入 {path}")
+
+
+def aggregate(results: list[dict]) -&gt; dict:
+    positive = [
+        result for result in results if result.get("case_type") == "positive"
+    ]
+
+    def average(values: list[float]) -&gt; float | None:
+        return mean(values) if values else None
+
+    target_rates = [
+        result["scores"]["target_field_accuracy"]
+        for result in positive
+        if result.get("scores", {}).get("target_field_accuracy") is not None
+    ]
+
+    durations = [result.get("duration_seconds", 0) for result in results]
+    costs = [result.get("cost_usd", {}).get("total", 0) for result in results]
+
+    return {
+        "total": len(results),
+        "positive": len(positive),
+        "negative": len(results) - len(positive),
+        "passed": sum(1 for result in results if result.get("success")),
+        "success_rate": (
+            sum(1 for result in results if result.get("success")) / len(results)
+            if results
+            else 0.0
+        ),
+        "target_accuracy": average(target_rates),
+        "competitor_rate": average([
+            result["scores"]["competitor"]["rate"]
+            for result in positive
+            if result.get("scores", {}).get("competitor")
+        ]),
+        "completeness": average([
+            result["scores"]["completeness"]
+            for result in results
+            if result.get("scores", {}).get("completeness") is not None
+        ]),
+        "avg_duration": average(durations),
+        "total_cost": sum(costs),
+        "avg_cost": average(costs),
+    }
+
+
+def write_report(results: list[dict], stats: dict) -&gt; None:
+    runtime = results[0].get("runtime", {}) if results else {}
+    git = runtime.get("git", {})
+    lines: list[str] = []
+
+    lines.append("# Amazon 竞品分析系统 · 评估报告")
+    lines.append("")
+    lines.append(
+        f"- 生成时间：{datetime.now(timezone.utc).isoformat()}（UTC）"
+    )
+    lines.append(
+        f"- 代码版本：`{git.get('commit') or '未知'}`"
+        f"（未提交改动 {git.get('changed_files', 0)} 个文件，"
+        f"{'dirty' if git.get('dirty') else 'clean'}）"
+    )
+    lines.append(
+        f"- 模型：`{runtime.get('llm_model') or '未知'}`，"
+        f"Embedding：`{runtime.get('embedding_model') or '未知'}`"
+    )
+    lines.append("- 运行模式：真实模式（MOCK_MODE=False）")
+    lines.append("")
+
+    lines.append("## 汇总")
+    lines.append("")
+    lines.append("| 指标 | 数值 |")
+    lines.append("| --- | --- |")
+    lines.append(f"| 案例数 | {stats['total']}（正向 {stats['positive']} / 负向 {stats['negative']}） |")
+    lines.append(
+        f"| 任务成功率 | {stats['passed']}/{stats['total']}"
+        f" = {stats['success_rate'] * 100:.1f}% |"
+    )
+    lines.append(
+        "| 目标字段准确率（正向均值） | "
+        f"{format_number(stats['target_accuracy'])} |"
+    )
+    lines.append(
+        "| 竞品有效性得分（正向均值） | "
+        f"{format_number(stats['competitor_rate'])} |"
+    )
+    lines.append(
+        f"| 信息完整度（全部均值） | {format_number(stats['completeness'])} |"
+    )
+    lines.append(
+        "| 平均耗时 | "
+        f"{format_number(stats['avg_duration'], 1)} 秒 |"
+    )
+    lines.append(
+        "| API 总成本 | "
+        f"${format_number(stats['total_cost'], 4)}"
+        f"（单案例均值 ${format_number(stats['avg_cost'], 4)}） |"
+    )
+    lines.append("")
+
+    lines.append("## 逐案例")
+    lines.append("")
+    lines.append(
+        "| 案例 | 商品 | 类型 | 状态 | 通过 | 耗时(s) | "
+        "目标准确率 | 竞品得分 | 有效竞品 | 成本($) |"
+    )
+    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+
+    for result in results:
+        row = row_of(result)
+        lines.append(
+            f"| {row['case_id']} | {row['target_product']} | "
+            f"{row['case_type']} | {row['status']} | {row['success']} | "
+            f"{row['duration_seconds']} | {row['target_field_accuracy']} | "
+            f"{row['competitor_rate']} | {row['valid_competitors']} | "
+            f"{row['cost_usd']} |"
+        )
+
+    lines.append("")
+
+    failed = [result for result in results if not result.get("success")]
+
+    lines.append("## 未通过的案例")
+    lines.append("")
+
+    if not failed:
+        lines.append("无。")
+    else:
+        for result in failed:
+            lines.append(f"### {result.get('case_id')} · {result.get('target_product')}")
+            lines.append("")
+
+            for reason in result.get("failure_reasons", []):
+                lines.append(f"- {reason}")
+
+            if result.get("error"):
+                lines.append(f"- 异常：`{result['error']}`")
+
+            for note in result.get("notes", []):
+                lines.append(f"- 备注：{note}")
+
+            lines.append("")
+
+    lines.append("## 结论（需人工填写）")
+    lines.append("")
+    lines.append("&gt; 自动生成的部分到此为止。下面的结论只能由你根据上表自己写。")
+    lines.append("")
+    lines.append("- 系统在哪些商品类目上表现稳定：")
+    lines.append("- 最明显的失败模式是什么（字段错、竞品偏、超时、成本高）：")
+    lines.append("- 一条可以写进简历、且有数据支撑的结论：")
+    lines.append("")
+
+    lines.append("## 这份评估不能证明什么")
+    lines.append("")
+    lines.append("- 案例数只有 10 个，是抽样检查，不是统计意义上的基准测试。")
+    lines.append("- 预期值来自人工录入的 Amazon 页面，价格和评论数会随时间变化，"
+                 "同一案例隔几周重跑可能不再一致。")
+    lines.append("- 竞品只按 ASIN 格式、去重、品牌差异、类目关键词判定，"
+                 "没有人工判断“是否真的好用”。")
+    lines.append("- 成本是本地按单价估算的，不是账单金额；单价见 "
+                 "`evals/pricing.json`。")
+    lines.append("- 真实用户场景下的并发、稳定性和数据规模都没有覆盖。")
+    lines.append("")
+
+    path = framework.RESULTS_DIR / "report.md"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"已写入 {path}")
+
+
+def main() -&gt; int:
+    results = load_results()
+
+    if not results:
+        print("results/ 下没有 case-*.json，先跑 evals.run_eval 或 evals.run_all")
+        return 1
+
+    stats = aggregate(results)
+    write_csv(results)
+    write_report(results, stats)
+
+    print(
+        f"通过 {stats['passed']}/{stats['total']}，"
+        f"平均目标准确率 {format_number(stats['target_accuracy'])}，"
+        f"总成本 ${format_number(stats['total_cost'], 4)}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre></div>
+<h3>运行</h3>
+<div class="cmdb"><span class="prompt">$</span><code>python -m evals.summarize</code><button class="copy" type="button">复制</button></div>
+<h3>产物</h3>
+<ul>
+  <li><code>evals/results/summary.csv</code>：一行一个案例，Excel 直接打开（带 BOM，中文不乱码）。</li>
+  <li><code>evals/results/report.md</code>：汇总表 + 逐案例表 + 失败清单 + 「这份评估不能证明什么」。</li>
+</ul>
+
+<h3>验收</h3>
+<ul>
+  <li><code>report.md</code> 的「逐案例」表有 10 行；</li>
+  <li>「汇总」里的数字和 <code>summary.csv</code> 对得上；</li>
+  <li>「结论（需人工填写）」下面还是空的——<strong>这是故意的</strong>。</li>
+</ul>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-9" type="checkbox"><label for="check-9">这一步的验收过了，我可以往下走</label></div></section>
+<section class="step" id="step-10" data-step="10"><div class="step-head"><span class="step-num">10</span><h2>写结论、归档、下次复跑</h2><span class="time">约 20 分钟</span></div>
+<h3>目标</h3>
+<p>把数据变成结论，并且用词不被面试官抓住。</p>
+
+<h3>结论写三段</h3>
+<ol>
+  <li><strong>能力</strong>：哪类输入稳定。用 <code>report.md</code> 里的真实数字，例如
+      「7 个正向案例完成 X 个，目标 ASIN 命中 Y/Z」。</li>
+  <li><strong>边界</strong>：哪类会失败。例如「3 个负向案例里 2 个按预期失败，
+      无品牌输入仍然强行产出了结果」。</li>
+  <li><strong>代价</strong>：单次分析平均耗时、平均成本，以及钱花在哪（LLM 轮数 / 评论采集 / 搜索）。</li>
+</ol>
+
+<h3>可以直接改写的三句话（数字必须来自你的 report.md）</h3>
+<div class="card">
+  <p>① 搭建 10 案例离线评估：7 个正向 + 3 个负向，覆盖商品字段准确率、竞品有效性、
+     任务成功率、耗时与 API 成本，一条命令可复跑。</p>
+  <p>② 正向案例任务成功率 <strong>X/7</strong>，目标 ASIN 准确率 <strong>Y/Z</strong>，
+     单次分析平均耗时 <strong>N 秒</strong>、成本 <strong>$M</strong>。</p>
+  <p>③ 测出两类边界：无品牌输入与中文查询。系统在信息不足时倾向于强行产出结果而不是拒绝，
+     该项已列为后续改进项。</p>
+</div>
+
+<div class="warn danger"><strong>不能写的话：</strong>
+「准确率 95%+」「行业领先」「显著优于基线」「Benchmark 第一」——
+10 个案例、没有对照组、没有人工标注集，这些词经不起追问，一问就露。
+同理，不要把模拟报告的数字当真实结果写。</div>
+
+<h3>归档</h3>
+<p>把结论补进 <code>report.md</code>，然后把证据提交：</p>
+<div class="cmdb"><span class="prompt">$</span><code>git add evals/ &amp;&amp; git commit -m "add eval suite: 10 cases, metrics and failure analysis"</code><button class="copy" type="button">复制</button></div>
+<p>不想提交也行，但至少把 <code>report.md</code> 和 <code>summary.csv</code> 备份到
+<code>docs/</code> 下——面试时你要能当场打开它。</p>
+
+<h3>下次复跑</h3>
+<ul>
+  <li>改了 prompt、工具或并发参数之后，重跑同样的 10 个案例；</li>
+  <li>比较同一个 <code>case-XX.json</code> 的 <code>duration_seconds</code>、
+      <code>cost_usd.total</code>、<code>competitor.valid_count</code>；</li>
+  <li>这三个数字的变化，就是你在面试里讲「我迭代过、并且知道它变好了」的证据；</li>
+  <li>每次的结果 JSON 里已经记录了 <code>runtime.git.commit</code> 和抓取日期，
+      不同批次之间可以直接对齐。</li>
+</ul>
+
+<h3>验收</h3>
+<ul>
+  <li><code>report.md</code> 的「结论」三行是你自己写的，且每个数字都能在表里找到；</li>
+  <li>你知道下一次要重跑哪条命令。</li>
+</ul>
+<div class="gate"><div class="gate-head">验收 · 过不了就别往下走</div><ul><li>这一步的验收命令能跑通，输出与上面写的一致。</li><li>出现过的问题已经解决，不是靠跳过验收绕过去。</li></ul></div><div class="check"><input class="gate-check" id="check-10" type="checkbox"><label for="check-10">这一步的验收过了，我可以往下走</label></div></section>
+<h2 class="section-title" id="trouble">故障排查</h2>
+<p class="section-lead">跑之前先扫一眼，出问题时按这张表定位，别乱改代码。</p>
+
+<table>
+<thead><tr><th>症状</th><th>原因</th><th>处理</th></tr></thead>
+<tbody>
+<tr><td><code>ModuleNotFoundError: No module named 'evals'</code></td>
+    <td>不在项目根目录，或 <code>evals/__init__.py</code> 没建</td>
+    <td><code>cd "E:/Analysis System"</code> 后重跑；确认 <code>__init__.py</code> 存在</td></tr>
+<tr><td><code>ModuleNotFoundError: No module named 'app'</code></td>
+    <td>同上，项目根不在 <code>sys.path</code></td>
+    <td>同上；<code>framework.py</code> 已自动把项目根加进 <code>sys.path</code></td></tr>
+<tr><td>所有案例都 completed，但报告里写着「（模拟）」</td>
+    <td><code>MOCK_MODE</code> 没关</td>
+    <td>看 JSON 的 <code>runtime.mock_mode</code>；删掉结果重跑</td></tr>
+<tr><td>status=failed，error 是「报告文件不存在」</td>
+    <td>工作目录不对，相对路径解析到别处</td>
+    <td>确认 <code>run_eval.py</code> 里有 <code>os.chdir(PROJECT_ROOT)</code></td></tr>
+<tr><td>completed 但 <code>actual.product_count = 0</code></td>
+    <td>明细落库失败被吞</td>
+    <td>在 log 里搜「分析明细落库失败」，看数据库字段是否超长 / 连接问题</td></tr>
+<tr><td><code>RuntimeError: 缺少 DB_PASSWORD</code></td>
+    <td><code>.env</code> 不在项目根，或变量名不对</td>
+    <td>确认 <code>E:/Analysis System/.env</code> 存在且含 <code>DB_PASSWORD</code></td></tr>
+<tr><td>preflight 的 MySQL 项 FAIL</td>
+    <td>MySQL 没启动，或库/表没建</td>
+    <td>启动 MySQL 后执行 <code>python -m backend.app.db.init_db</code></td></tr>
+<tr><td>单个案例跑 30 分钟还没结束</td>
+    <td>外部 API 慢，评论采集卡住</td>
+    <td>看 log 停在哪个阶段；<code>run_all --timeout 600</code> 会杀掉超时案例</td></tr>
+<tr><td>成本高得不正常</td>
+    <td>同一进程跑了多个案例，缓存失效导致重复调用</td>
+    <td>只用 <code>run_all</code>（子进程隔离），不要自己写循环调 <code>run_eval</code> 的函数</td></tr>
+<tr><td>同一个案例两次结果差很多</td>
+    <td>Amazon 价格/评论变化 + LLM 非确定性</td>
+    <td>正常。结论里写清楚抓取日期和波动范围，比假装稳定强</td></tr>
+</tbody>
+</table>
+
+<h2 class="section-title" id="qa">面试怎么讲</h2>
+<p class="section-lead">这些是你做完评估后会被追问的问题。回答里的数字，只能来自你自己的 report.md。</p>
+
+<div class="qa">
+  <p class="q">问：你怎么评估这个系统的？</p>
+  <p class="a">10 个案例，7 正向 3 负向，全部在真实模式下跑。正向看目标商品 5 个字段的准确率、
+     竞品 6 项有效性、任务成功率和信息完整度；负向看系统会不会在信息不足时硬编结果。
+     另外每个案例都记了耗时、token 和外部调用次数，换算成本。每个案例独立进程，
+     避免缓存污染。</p>
+</div>
+<div class="qa">
+  <p class="q">问：10 个案例够吗？</p>
+  <p class="a">不够做统计，但够定位失败模式。它是抽样体检，不是 benchmark——我在报告里
+     明确写了这一点，也写了价格会漂移、竞品有效性是启发式判定这些局限。</p>
+</div>
+<div class="qa">
+  <p class="q">问：准确率怎么算的？</p>
+  <p class="a">只统计我人工填了预期值的字段。价格允许 ±5%，评分 ±0.1，评论数 ±max(50, 10%)，
+     因为这三项本来就会随时间小幅波动。留空的字段不计分，不会被当成错。</p>
+</div>
+<div class="qa">
+  <p class="q">问：成本怎么测的？</p>
+  <p class="a">在评估进程里给 OpenAI SDK 的 <code>create</code> 和 Tavily 的检索打了补丁，
+     统计 token 与调用次数，再乘 <code>pricing.json</code> 里的单价。token 是真实的，
+     单价是公开价目表估的，所以我说的是「本地估算成本」，不是账单金额。</p>
+</div>
+<div class="qa">
+  <p class="q">问：负向案例为什么算失败反而是好事？</p>
+  <p class="a">负向案例测的是边界行为：无品牌、中文查询、不存在的商品。理想结果是系统明确报错，
+     而不是编一个 ASIN 出一份看起来正常的报告。后者在真实业务里更危险，因为用户看不出来是假的。</p>
+</div>
+<div class="qa">
+  <p class="q">问：这套评估最大的局限是什么？</p>
+  <p class="a">样本小、预期值靠人工录入会漂移、竞品有效性是启发式判定而不是人工打分、
+     成本是估算。这四条我都写进了报告的「不能证明什么」，没有包装成 benchmark。</p>
+</div>
+
+<h2 class="section-title" id="checklist">完成清单</h2>
+<div class="card"><p>全部打勾，这套评估才算真的交付了。</p>
+<ul class="checklist">
+  <li><label><input type="checkbox"><code>evals/</code> 包能通过 <code>python -m</code> 调用</label></li>
+  <li><label><input type="checkbox">7 个正向案例的 ASIN / 价格 / 评分 / 评论数已人工填好，并记了抓取日期</label></li>
+  <li><label><input type="checkbox"><code>python -m evals.selftest</code> 通过</label></li>
+  <li><label><input type="checkbox"><code>python -m evals.preflight</code> 7/7 通过</label></li>
+  <li><label><input type="checkbox">case-01 跑通，且 <code>runtime.mock_mode</code> 为 <code>false</code></label></li>
+  <li><label><input type="checkbox"><code>evals/results/</code> 下有 10 份 <code>case-XX.json</code></label></li>
+  <li><label><input type="checkbox"><code>summary.csv</code> 与 <code>report.md</code> 已生成，数字对得上</label></li>
+  <li><label><input type="checkbox"><code>report.md</code> 的结论三行由你手写，每个数字都能在表里找到</label></li>
+  <li><label><input type="checkbox">知道改代码后重跑哪条命令，以及该比较哪三个数字</label></li>
+</ul>
+</div>
+<p class="footer">手册由项目代码与实际运行环境生成；代码块与 <code>evals/</code> 下的文件逐字一致。<br>生成日期 2026-10-28。</p>
+</main></div>
+<a class='top-link' href='#top'>回到顶部 ↑</a>
+<script>
+(function () {
+  var KEY = 'eval-guide-progress-v1';
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step'));
+  var navItems = Array.prototype.slice.call(document.querySelectorAll('.nav-item'));
+  var fill = document.getElementById('progress-fill');
+  var text = document.getElementById('progress-text');
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
+    catch (e) { return {}; }
+  }
+
+  function save(state) {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  var state = load();
+
+  function render() {
+    var done = 0;
+    steps.forEach(function (step, index) {
+      var id = step.getAttribute('data-step');
+      var checked = !!state[id];
+      step.classList.toggle('done', checked);
+      var box = step.querySelector('input.gate-check');
+      if (box) { box.checked = checked; }
+      var nav = navItems[index];
+      if (nav) { nav.classList.toggle('done', checked); }
+      if (checked) { done += 1; }
+    });
+    var pct = steps.length ? Math.round((done / steps.length) * 100) : 0;
+    if (fill) { fill.style.width = pct + '%'; }
+    if (text) { text.textContent = done + ' / ' + steps.length + ' 步完成（' + pct + '%）'; }
+  }
+
+  steps.forEach(function (step) {
+    var box = step.querySelector('input.gate-check');
+    if (!box) { return; }
+    box.addEventListener('change', function () {
+      state[step.getAttribute('data-step')] = box.checked;
+      save(state);
+      render();
+    });
+  });
+
+  var reset = document.getElementById('reset-progress');
+  if (reset) {
+    reset.addEventListener('click', function () {
+      state = {};
+      save(state);
+      render();
+    });
+  }
+
+  document.querySelectorAll('button.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var root = btn.closest('.codeblock') || btn.closest('.cmdb');
+      var code = root ? root.querySelector('code') : null;
+      if (!code) { return; }
+      var value = code.textContent;
+      var done = function () {
+        btn.textContent = '已复制';
+        setTimeout(function () { btn.textContent = '复制'; }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done, function () { fallback(); });
+      } else {
+        fallback();
+      }
+      function fallback() {
+        var area = document.createElement('textarea');
+        area.value = value;
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        try { document.execCommand('copy'); done(); } catch (e) { btn.textContent = '复制失败'; }
+        document.body.removeChild(area);
+      }
+    });
+  });
+
+  render();
+})();
+</script>
+</body></html>

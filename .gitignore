@@ -5,3 +5,25 @@ __pycache__/
 .idea/
 node_modules/
 frontend/dist/
+
+# 测试与缓存
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 运行时生成的报告（保留目录本身）
+reports/*
+!reports/.gitkeep
+
+# 日志
+logs/
+*.log
+
+evals/logs/
+evals/results/case-*.json
+
+
+
+# 个人求职材料，不上传
+求职材料/
+app/data/reviews/

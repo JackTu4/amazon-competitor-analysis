@@ -1,10 +1,9 @@
-from concurrent.futures import Future, ThreadPoolExecutor
-from threading import Lock
+from concurrent.futures import Future
+from threading import Lock, Thread
 
 from app.analyzers.product_review_pipeline import analyze_product_reviews
 
 
-_review_executor = ThreadPoolExecutor(max_workers=2)
 _review_futures: dict[str, Future] = {}
 _review_lock = Lock()
 
@@ -13,6 +12,14 @@ def _analyze_reviews(asin: str) -> dict:
     """实际执行评论采集与分析。"""
     result = analyze_product_reviews(asin)
     return result.model_dump()
+
+
+def _run_review(asin: str, future: Future) -> None:
+    """在线程里执行采集，并把结果写回 Future。"""
+    try:
+        future.set_result(_analyze_reviews(asin))
+    except BaseException as exc:
+        future.set_exception(exc)
 
 
 def warmup_product_reviews(asin: str) -> Future:
@@ -27,8 +34,15 @@ def warmup_product_reviews(asin: str) -> Future:
             future = None
 
         if future is None:
-            future = _review_executor.submit(_analyze_reviews, asin)
+            future = Future()
             _review_futures[asin] = future
+            # daemon 线程：任务失败或进程退出时不会把整个流程卡住
+            Thread(
+                target=_run_review,
+                args=(asin, future),
+                daemon=True,
+                name=f"reviews-{asin}",
+            ).start()
 
         return future
 

@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon 智能竞品分析系统 — 数据流与架构分析</title>
+<style>
+  :root{
+    --ink:#1f2430;
+    --muted:#5b6472;
+    --accent:#2f5fd0;
+    --accent-soft:#eef3ff;
+    --line:#dfe4ec;
+    --code-bg:#f6f8fb;
+    --warn:#b42318;
+    --warn-bg:#fff3f1;
+    --ok:#1a7f4b;
+    --ok-bg:#eefaf3;
+    --amber:#9a6700;
+    --amber-bg:#fff8e6;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    padding:0;
+    color:var(--ink);
+    background:#eef1f6;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
+    font-size:15px;
+    line-height:1.75;
+  }
+  .page{
+    max-width:920px;
+    margin:32px auto 80px;
+    background:#fff;
+    padding:56px 64px 72px;
+    border-radius:14px;
+    box-shadow:0 10px 40px rgba(20,30,60,.10);
+  }
+  /* ---------- cover ---------- */
+  .cover{
+    border-bottom:3px solid var(--accent);
+    padding-bottom:28px;
+    margin-bottom:36px;
+  }
+  .eyebrow{
+    display:inline-block;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    background:var(--accent-soft);
+    padding:4px 10px;
+    border-radius:999px;
+    font-weight:600;
+  }
+  h1{
+    font-size:34px;
+    line-height:1.3;
+    margin:18px 0 10px;
+    letter-spacing:-.01em;
+  }
+  .subtitle{
+    color:var(--muted);
+    font-size:16px;
+    margin:0 0 22px;
+  }
+  .meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 28px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .meta b{color:var(--ink);font-weight:600;}
+  /* ---------- headings ---------- */
+  h2{
+    font-size:22px;
+    margin:52px 0 16px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+    letter-spacing:-.01em;
+    page-break-after:avoid;
+  }
+  h2 .num{
+    display:inline-block;
+    min-width:32px;
+    color:var(--accent);
+    font-variant-numeric:tabular-nums;
+  }
+  h3{
+    font-size:17px;
+    margin:30px 0 10px;
+    page-break-after:avoid;
+  }
+  h4{
+    font-size:15px;
+    margin:22px 0 8px;
+    color:var(--ink);
+    page-break-after:avoid;
+  }
+  p{margin:10px 0;}
+  a{color:var(--accent);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  /* ---------- toc ---------- */
+  .toc{
+    background:var(--code-bg);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px 24px;
+    margin:0 0 8px;
+    page-break-inside:avoid;
+  }
+  .toc-title{
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.1em;
+    color:var(--muted);
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:36px;}
+  .toc li{margin:5px 0;font-size:14px;}
+  /* ---------- code ---------- */
+  code{
+    font-family:Consolas,"JetBrains Mono","SFMono-Regular",Menlo,monospace;
+    font-size:.88em;
+    background:#eef1f7;
+    padding:1px 5px;
+    border-radius:4px;
+    word-break:break-word;
+  }
+  pre{
+    background:var(--code-bg);
+    border:1px solid var(--line);
+    border-left:3px solid var(--accent);
+    border-radius:8px;
+    padding:16px 18px;
+    overflow-x:auto;
+    font-size:12.5px;
+    line-height:1.65;
+    page-break-inside:avoid;
+  }
+  pre code{background:none;padding:0;font-size:inherit;}
+  .path{
+    font-family:Consolas,"JetBrains Mono",monospace;
+    font-size:.86em;
+    color:var(--accent);
+    background:var(--accent-soft);
+    padding:1px 6px;
+    border-radius:4px;
+    white-space:nowrap;
+  }
+  /* ---------- tables ---------- */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin:16px 0 22px;
+    font-size:13.5px;
+    page-break-inside:auto;
+  }
+  thead th{
+    background:#f2f5fa;
+    text-align:left;
+    font-weight:600;
+    color:var(--ink);
+    border-bottom:2px solid var(--line);
+    padding:10px 12px;
+    white-space:nowrap;
+  }
+  tbody td{
+    border-bottom:1px solid var(--line);
+    padding:10px 12px;
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr{page-break-inside:avoid;}
+  td code,th code{white-space:nowrap;}
+  .col-file{width:34%;}
+  /* ---------- callouts ---------- */
+  .callout{
+    border-radius:10px;
+    padding:14px 18px;
+    margin:18px 0;
+    font-size:14px;
+    page-break-inside:avoid;
+  }
+  .callout .tag{
+    display:block;
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin-bottom:4px;
+  }
+  .callout.info{background:var(--accent-soft);border-left:4px solid var(--accent);}
+  .callout.info .tag{color:var(--accent);}
+  .callout.warn{background:var(--warn-bg);border-left:4px solid var(--warn);}
+  .callout.warn .tag{color:var(--warn);}
+  .callout.ok{background:var(--ok-bg);border-left:4px solid var(--ok);}
+  .callout.ok .tag{color:var(--ok);}
+  /* ---------- flow diagram ---------- */
+  .flow{margin:22px 0 28px;page-break-inside:avoid;}
+  .flow-node{
+    border:1px solid var(--line);
+    border-left:4px solid var(--accent);
+    background:#fbfcfe;
+    border-radius:8px;
+    padding:10px 16px;
+    font-size:13.5px;
+  }
+  .flow-node .layer{
+    display:inline-block;
+    min-width:88px;
+    font-weight:700;
+    color:var(--accent);
+    font-size:12px;
+    letter-spacing:.04em;
+  }
+  .flow-node .desc{color:var(--muted);}
+  .flow-arrow{
+    text-align:center;
+    color:#9aa5b8;
+    font-size:15px;
+    line-height:1.1;
+    padding:2px 0;
+  }
+  .flow-arrow span{
+    display:inline-block;
+    background:#fff;
+    padding:0 8px;
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  /* pipeline */
+  .pipeline{
+    display:flex;
+    align-items:stretch;
+    gap:0;
+    margin:20px 0 26px;
+    page-break-inside:avoid;
+  }
+  .pipe-step{
+    flex:1;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+    background:#fbfcfe;
+    font-size:13px;
+  }
+  .pipe-step .n{
+    display:inline-block;
+    width:20px;height:20px;line-height:20px;
+    border-radius:50%;
+    background:var(--accent);
+    color:#fff;
+    text-align:center;
+    font-size:11px;
+    font-weight:700;
+    margin-right:6px;
+  }
+  .pipe-step b{display:block;margin-bottom:4px;font-size:13px;}
+  .pipe-arrow{
+    align-self:center;
+    color:#9aa5b8;
+    padding:0 8px;
+    font-size:16px;
+  }
+  /* ---------- endpoint cards ---------- */
+  .endpoint{
+    border:1px solid var(--line);
+    border-radius:10px;
+    margin:16px 0;
+    overflow:hidden;
+    page-break-inside:avoid;
+  }
+  .endpoint-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:#f2f5fa;
+    padding:10px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .method{
+    font-family:Consolas,monospace;
+    font-size:11.5px;
+    font-weight:700;
+    color:#fff;
+    padding:2px 8px;
+    border-radius:4px;
+  }
+  .method.get{background:#1a7f4b;}
+  .method.post{background:#2f5fd0;}
+  .endpoint-head code{background:none;font-size:13.5px;font-weight:600;}
+  .endpoint-body{padding:12px 16px;font-size:13.5px;}
+  .endpoint-body dl{display:grid;grid-template-columns:96px 1fr;gap:4px 12px;margin:0;}
+  .endpoint-body dt{color:var(--muted);font-size:12.5px;}
+  .endpoint-body dd{margin:0;}
+  /* ---------- severity ---------- */
+  .sev{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:999px;
+    white-space:nowrap;
+  }
+  .sev.block{background:#ffe4e0;color:#b42318;}
+  .sev.high{background:#fff0d6;color:#9a6700;}
+  .sev.mid{background:#e8eefc;color:#2f5fd0;}
+  .sev.low{background:#eef1f7;color:#5b6472;}
+  /* ---------- misc ---------- */
+  ul,ol{padding-left:22px;}
+  li{margin:5px 0;}
+  .kv{
+    display:grid;
+    grid-template-columns:150px 1fr;
+    gap:6px 16px;
+    font-size:14px;
+    margin:14px 0;
+  }
+  .kv dt{color:var(--muted);}
+  .kv dd{margin:0;}
+  .footer{
+    margin-top:56px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+    font-size:12.5px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .print-btn{
+    position:fixed;
+    top:20px;right:20px;
+    z-index:99;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:999px;
+    padding:11px 20px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(47,95,208,.32);
+    font-family:inherit;
+  }
+  .print-btn:hover{background:#244da8;}
+  .nowrap{white-space:nowrap;}
+  /* ---------- print ---------- */
+  @page{size:A4;margin:16mm 14mm;}
+  @media print{
+    body{background:#fff;font-size:10.4pt;line-height:1.62;}
+    .page{
+      max-width:none;
+      margin:0;
+      padding:0;
+      border-radius:0;
+      box-shadow:none;
+    }
+    .print-btn{display:none !important;}
+    h1{font-size:24pt;}
+    h2{font-size:14.5pt;margin-top:24pt;}
+    h3{font-size:11.5pt;}
+    pre{font-size:8.6pt;}
+    table{font-size:9pt;}
+    thead{display:table-header-group;}
+    .toc ol{columns:2;}
+    .flow,.pipeline,.endpoint,.callout,.toc{page-break-inside:avoid;}
+    a{color:var(--ink);}
+  }
+  @media (max-width:720px){
+    .page{margin:0;padding:28px 20px;border-radius:0;}
+    .toc ol{columns:1;}
+    .pipeline{flex-direction:column;}
+    .pipe-arrow{transform:rotate(90deg);padding:6px 0;}
+    .endpoint-body dl{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">打印 / 导出 PDF</button>
+
+<div class="page">
+
+  <!-- ================= COVER ================= -->
+  <header class="cover">
+    <span class="eyebrow">Architecture Review</span>
+    <h1>Amazon 智能竞品分析系统<br>数据流与架构分析</h1>
+    <p class="subtitle">前端 · 后端 · Agent 三层的端到端数据通路、核心函数、核心模块与接口实现位置</p>
+    <div class="meta">
+      <span><b>项目</b>&nbsp; Analysis System</span>
+      <span><b>分支</b>&nbsp; master</span>
+      <span><b>日期</b>&nbsp; 2026-10-26</span>
+      <span><b>版本</b>&nbsp; v1.0</span>
+    </div>
+  </header>
+
+  <!-- ================= TOC ================= -->
+  <nav class="toc">
+    <div class="toc-title">目录</div>
+    <ol>
+      <li><a href="#s1">一句话结论</a></li>
+      <li><a href="#s2">分层与核心模块</a></li>
+      <li><a href="#s3">端到端数据流</a></li>
+      <li><a href="#s4">前端核心模块</a></li>
+      <li><a href="#s5">后端核心模块</a></li>
+      <li><a href="#s6">Agent 层核心模块</a></li>
+      <li><a href="#s7">前后端接口实现文件</a></li>
+      <li><a href="#s8">数据形态演进</a></li>
+      <li><a href="#s9">风险清单与修复建议</a></li>
+      <li><a href="#s10">附：文件索引</a></li>
+    </ol>
+  </nav>
+
+  <!-- ================= 1 ================= -->
+  <h2 id="s1"><span class="num">01</span>一句话结论</h2>
+
+  <p>一次分析任务的完整链路是：</p>
+
+<pre><code>Vue 组件 → frontend/src/api/analysis.js（fetch 封装）
+         → Vite 代理 /api → FastAPI（backend/app/main.py 路由）
+         → analysis_service.py（内存任务表 + 后台线程）
+         → AnalysisWorkflow（3 个 Task 串联）
+         → Agent（LLM + 工具循环）+ 竞品发现 + 报告生成
+         → reports/{task_id}.md
+         → 前端 2 秒轮询 → GET report → markdown-it 渲染</code></pre>
+
+  <div class="callout info">
+    <span class="tag">核心判断</span>
+    这是一个<strong>「提交任务 → 后台线程执行 → 前端轮询 → 拉取报告」</strong>的异步任务模型。
+    HTTP 层只做三件事：创建任务、查状态、取报告；真正的业务全部发生在后端进程内的线程与工作流中，
+    任务状态保存在内存字典，报告以 Markdown 文件落盘。
+  </div>
+
+  <h3>前后端交互的接口层文件</h3>
+  <div class="kv">
+    <dt>前端唯一出口</dt><dd><span class="path">frontend/src/api/analysis.js</span></dd>
+    <dt>后端唯一入口</dt><dd><span class="path">backend/app/main.py</span>（<code>routers.py</code> 为空文件，路由未拆分）</dd>
+    <dt>请求/响应契约</dt><dd><span class="path">backend/app/schemas.py</span></dd>
+    <dt>异步任务实现</dt><dd><span class="path">backend/app/analysis_service.py</span></dd>
+    <dt>开发期连接桥梁</dt><dd><span class="path">frontend/vite.config.js</span>（<code>/api</code> → <code>127.0.0.1:8000</code>）</dd>
+  </div>
+
+  <!-- ================= 2 ================= -->
+  <h2 id="s2"><span class="num">02</span>分层与核心模块</h2>
+
+  <table>
+    <thead>
+      <tr><th>层</th><th class="col-file">目录</th><th>职责</th><th>运行时载体</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>前端</td><td><code>frontend/src</code></td><td>输入、状态机、轮询、Markdown 渲染</td><td>浏览器（Vite dev server）</td></tr>
+      <tr><td>后端 / 接口层</td><td><code>backend/app</code></td><td>HTTP 路由、任务表、后台线程</td><td>FastAPI + uvicorn</td></tr>
+      <tr><td>工作流层</td><td><code>app/workflow</code></td><td>任务串联与数据传递</td><td>后台线程</td></tr>
+      <tr><td>Agent 层</td><td><code>app/agent</code></td><td>竞品发现、LLM 工具循环、结果校验</td><td>线程池</td></tr>
+      <tr><td>工具层</td><td><code>app/tools</code></td><td>搜索、网页抓取、评论采集、知识库</td><td>同步函数</td></tr>
+      <tr><td>LLM / RAG 层</td><td><code>app/llm</code>、<code>app/rag</code></td><td>统一 OpenAI 兼容客户端、本地向量检索</td><td>外部 API</td></tr>
+      <tr><td>输出层</td><td><code>app/reporter</code></td><td>组装 Markdown、落盘</td><td>本地文件</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ================= 3 ================= -->
+  <h2 id="s3"><span class="num">03</span>端到端数据流</h2>
+
+  <h3>3.1 总览</h3>
+
+  <div class="flow">
+    <div class="flow-node"><span class="layer">浏览器</span><span class="desc">Vue 3 · ProductForm / AnalysisStatus / AnalysisView</span></div>
+    <div class="flow-arrow"><span>▼&nbsp; fetch POST /api/analysis</span></div>
+    <div class="flow-node"><span class="layer">Vite 代理</span><span class="desc">/api → http://127.0.0.1:8000（vite.config.js）</span></div>
+    <div class="flow-arrow"><span>▼&nbsp; HTTP / JSON</span></div>
+    <div class="flow-node"><span class="layer">FastAPI</span><span class="desc">backend/app/main.py 路由 + schemas.py 校验</span></div>
+    <div class="flow-arrow"><span>▼&nbsp; create_analysis_task()</span></div>
+    <div class="flow-node"><span class="layer">任务管理</span><span class="desc">analysis_service.py：内存任务表 + daemon Thread</span></div>
+    <div class="flow-arrow"><span>▼&nbsp; 后台线程执行</span></div>
+    <div class="flow-node"><span class="layer">工作流</span><span class="desc">AnalysisWorkflow：Task1 发现 → Task2 分析 → Task3 报告</span></div>
+    <div class="flow-arrow"><span>▼&nbsp; Agent + LLM + Tools</span></div>
+    <div class="flow-node"><span class="layer">输出</span><span class="desc">reports/{task_id}.md</span></div>
+    <div class="flow-arrow"><span>▲&nbsp; 前端每 2 秒轮询 GET /api/analysis/{id}</span></div>
+    <div class="flow-node"><span class="layer">回传</span><span class="desc">GET /api/analysis/{id}/report → Markdown 原文 → markdown-it + DOMPurify</span></div>
+  </div>
+
+  <h3>3.2 阶段一：创建任务（HTTP 同步返回）</h3>
+
+<pre><code>productForm.vue:18  handleSubmit()
+  └ emit("submit", product)
+      └ AnalysisView.vue:109  startAnalysis(product)
+          └ api/analysis.js:3  createAnalysis()
+              POST /api/analysis  { target_product: "..." }
+                  ↓  Vite proxy（vite.config.js:8-13）→ 127.0.0.1:8000
+backend/app/main.py:30  create_analysis(request: AnalysisRequest)
+  ├ schemas.py:2  AnalysisRequest 校验（min_length=1）
+  └ analysis_service.py:68  create_analysis_task(target_product)
+      ├ analysis_tasks[task_id] = { status: "pending", ... }
+      └ Thread(target=run_analysis, daemon=True).start()
+返回 AnalysisResponse { task_id, status:"pending", message, target_product }</code></pre>
+
+  <div class="callout info">
+    <span class="tag">关键点</span>
+    HTTP 请求<strong>立即返回 200</strong>，真正的分析在后台线程执行，前端依靠轮询获取结果。
+  </div>
+
+  <h3>3.3 阶段二：后台工作流（异步）</h3>
+
+  <p><code>analysis_service.py:13 run_analysis</code> 先把状态置为 <code>running</code>，然后分两条路：</p>
+
+  <h4>Mock 分支（默认走这条）</h4>
+<pre><code>MOCK_MODE = os.getenv("MOCK_MODE", "true").lower() == "true"   # analysis_service.py:11
+→ 直接拼一段假 Markdown → save_report(markdown, task_id) → reports/{task_id}.md</code></pre>
+
+  <h4>真实分支</h4>
+<pre><code>analysis_service.py:39  AnalysisWorkflow()
+    └ tasks.py:137  create_workflow_tasks()  →  [Task, Task, Task]
+    └ analysis_workflow.py:13  run(input_data)
+          input_data = { task_id, target_product }</code></pre>
+
+  <div class="pipeline">
+    <div class="pipe-step"><b><span class="n">1</span>discovery_task</b>定位目标 ASIN · 自动发现竞品</div>
+    <div class="pipe-arrow">▶</div>
+    <div class="pipe-step"><b><span class="n">2</span>analysis_task</b>3 个竞品并发 · LLM 工具循环</div>
+    <div class="pipe-arrow">▶</div>
+    <div class="pipe-step"><b><span class="n">3</span>report_task</b>组装 Markdown · 落盘</div>
+  </div>
+
+  <h4>Task 1 — discovery_task（tasks.py:10）</h4>
+<pre><code>find_target_asin(target_product)                     competitor_verifier.py:36
+  └ Tavily 搜索 "xxx site:amazon.com product"
+  └ 从 URL 正则提取 ASIN、校验容量
+  → { asin, title, url }
+
+warmup_product_reviews(target_asin)                  product_review_tool.py:18
+  └ 提交到独立线程池（不阻塞），供后面分析复用
+
+run_discovery(target_product)                        competitor_discovery.py:121
+  ├ build_search_queries()                           :6   生成 3 条“找替代品”搜索词
+  ├ discover_candidates()                            :22  3 线程并发 Tavily 搜索
+  │    过滤：必须是 /dp/ 或 /gp/product/、容量匹配、排除自身品牌、URL 去重，最多 5 个
+  ├ extract_competitors(target, results)             discovery_parser.py:11
+  │    └ LLM 从搜索结果 JSON 提取候选（temperature=0）
+  │    └ 校验：source_url 必须来自输入结果、标题需匹配、ASIN 与 URL 一致
+  └ verify_candidate(candidate) ×≤5，3 线程并发    competitor_verifier.py:104
+       └ 搜独立详情页 → read_webpage → extract_product（LLM） → verify_product_specs
+       → 回填 asin / source_url / verification_status
+
+data["competitors"] = 前 3 个 { name, asin, url }
+返回同一个 dict（新增 target_asin、competitors）</code></pre>
+
+  <h4>Task 2 — analysis_task（tasks.py:54）</h4>
+<pre><code>ThreadPoolExecutor(max_workers=3) 并发 analyze_one(comp)
+  └ agent.py:70  competitor_agent(target, comp.name, target_asin, comp_asin, comp_url)
+       messages = [system_prompt, user 描述]
+       ├ 只放行 3 个工具：search_knowledge / search_web / analyze_product_reviews（agent.py:99）
+       ├ 首轮强制 tool_choice = search_knowledge（agent.py:119）
+       ├ 循环最多 3 轮（agent.py:126）
+       │   ├ 有 tool_calls → 执行工具 → 结果 json.dumps 追加为 role=tool
+       │   │    search_knowledge      → RAG 检索（knowledge_tool.py:2 → rag/retriever.py:17）
+       │   │    search_web            → 有 asin 直读详情页；否则 Tavily + 抓页 + LLM 提取（agent.py:196）
+       │   │    analyze_product_reviews → 评论单飞缓存（product_review_tool.py:36）
+       │   └ 无 tool_calls → _parse_final_result()
+       │        └ 去 ``` 包裹 → json.loads → CompetitorAnalysis(**data)
+       │        → 校验目标 ASIN 一致、标题非空
+       │        → attach_review_analysis()（result_processor.py:3）合并评论分析
+       └ 第 3 轮追加 system 消息并 tool_choice="none"，强制出 JSON
+  结果包装为 { competitor_name, competitor_asin, competitor_url, analysis }
+过滤掉 error 项；全部失败则 RuntimeError
+返回 { task_id, target_product, analyses: [...] }</code></pre>
+
+  <h4>Task 3 — report_task（tasks.py:121）</h4>
+<pre><code>generate_markdown(result)              reporter/markdown.py:94
+  ├ dict → CompetitorAnalysis 二次校验，非法项跳过
+  ├ 目标产品区（format_product + format_review_analysis）
+  ├ 每个竞品：详情 + 核心指标对比表 + 价格差 + 总结
+  └ 数据说明
+save_report(markdown, task_id)         reporter/markdown.py:149
+  → Path("reports") / f"{task_id}.md"
+  → 返回 Path</code></pre>
+
+  <p>
+    <code>AnalysisWorkflow.run</code>（<span class="path">analysis_workflow.py:14-24</span>）
+    把每一步的返回值作为下一步输入；任一步异常则中断，并返回 <code>{"error": ...}</code>。
+  </p>
+
+  <table>
+    <thead><tr><th>run_analysis 收到的返回值</th><th>任务状态</th></tr></thead>
+    <tbody>
+      <tr><td><code>Path</code> 且文件存在</td><td><code>completed</code>，<code>record["result"] = 路径</code></td></tr>
+      <tr><td><code>{"error": ...}</code></td><td><code>failed</code>，<code>record["error"] = ...</code></td></tr>
+      <tr><td>非路径 / 文件不存在</td><td><code>failed</code></td></tr>
+      <tr><td>抛异常（<code>analysis_service.py:64</code>）</td><td><code>failed</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.4 阶段三：前端轮询（3 个接口中的第 2 个）</h3>
+<pre><code>AnalysisView.vue:70  pollStatus(id, version)
+  每 2 秒  GET /api/analysis/{task_id}
+  → backend main.py:52  get_analysis_status
+  → { task_id, target_product, status, error }
+
+pending / running → 继续 setTimeout 2000
+completed        → getAnalysisReport()
+failed           → 显示 error</code></pre>
+
+  <h3>3.5 阶段四：取报告并渲染</h3>
+<pre><code>API  GET /api/analysis/{task_id}/report
+  main.py:72  get_analysis_report
+  ├ 任务不存在 → 404
+  ├ failed    → 409
+  ├ 未完成    → 409
+  └ completed → path.read_text() → { task_id, status:"completed", report: "..." }
+
+前端 AnalysisView.vue:29
+  md.render(report) → DOMPurify.sanitize(html) → v-html
+下载：analysis.js 返回原文 → Blob 下载 .md</code></pre>
+
+  <!-- ================= 4 ================= -->
+  <h2 id="s4"><span class="num">04</span>前端核心模块</h2>
+
+  <table>
+    <thead><tr><th class="col-file">文件</th><th>核心函数 / 职责</th></tr></thead>
+    <tbody>
+      <tr><td><code>frontend/src/main.js</code></td><td>挂载 Vue 应用</td></tr>
+      <tr><td><code>frontend/src/App.vue</code></td><td>唯一入口，渲染 <code>AnalysisView</code></td></tr>
+      <tr><td><code>frontend/src/views/AnalysisView.vue</code></td><td><strong>状态中心</strong>：<code>startAnalysis</code>(:109)、<code>pollStatus</code>(:70)、<code>downloadReport</code>(:35)、<code>renderedReport</code>(:29)</td></tr>
+      <tr><td><code>frontend/src/components/productForm.vue</code></td><td>输入 + 校验 + <code>emit("submit")</code>(:18)</td></tr>
+      <tr><td><code>frontend/src/components/AnalysisStatus.vue</code></td><td>纯展示组件，按 <code>taskStatus</code> 显示文案</td></tr>
+      <tr><td><code>frontend/src/api/analysis.js</code></td><td><strong>唯一网络层</strong>：3 个 fetch 函数</td></tr>
+      <tr><td><code>frontend/vite.config.js</code></td><td><code>/api</code> 代理到 <code>127.0.0.1:8000</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    前端状态机：<code>"" → pending → running → completed | failed</code>。<br>
+    并发保护：<code>requestVersion</code>（<code>AnalysisView.vue:60,120,131</code>）防止旧请求覆盖新结果；
+    <code>onUnmounted</code> 停止轮询。
+  </p>
+
+  <!-- ================= 5 ================= -->
+  <h2 id="s5"><span class="num">05</span>后端核心模块</h2>
+
+  <table>
+    <thead><tr><th class="col-file">文件</th><th>核心函数</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>backend/app/main.py</code></td>
+        <td><code>create_analysis</code>(:30)、<code>get_analysis_status</code>(:52)、<code>get_analysis_report</code>(:72)、<code>health_check</code>(:21)</td>
+        <td><strong>全部路由都在这一个文件</strong></td>
+      </tr>
+      <tr>
+        <td><code>backend/app/schemas.py</code></td>
+        <td><code>AnalysisRequest</code>、<code>AnalysisResponse</code></td>
+        <td>唯一使用 Pydantic 的接口契约</td>
+      </tr>
+      <tr>
+        <td><code>backend/app/analysis_service.py</code></td>
+        <td><code>create_analysis_task</code>(:68)、<code>run_analysis</code>(:13)、<code>analysis_tasks</code>(:12)</td>
+        <td>内存任务表 + daemon 线程</td>
+      </tr>
+      <tr>
+        <td><code>backend/app/routers.py</code> / <code>services.py</code></td>
+        <td>—</td>
+        <td>空文件（预留，未实现）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <span class="tag">注意</span>
+    任务状态存在<strong>进程内全局字典</strong> <code>analysis_tasks</code>，没有数据库、没有磁盘持久化。
+  </div>
+
+  <!-- ================= 6 ================= -->
+  <h2 id="s6"><span class="num">06</span>Agent 层核心模块</h2>
+
+  <table>
+    <thead><tr><th class="col-file">文件</th><th>核心函数</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><code>app/agent/agent.py</code></td><td><code>competitor_agent</code>(:70)、<code>_parse_final_result</code>(:22)</td><td>单竞品 LLM 工具循环（最多 3 轮）+ 结果解析校验</td></tr>
+      <tr><td><code>app/agent/competitor_discovery.py</code></td><td><code>build_search_queries</code>(:6)、<code>discover_candidates</code>(:22)、<code>run_discovery</code>(:121)</td><td>竞品发现主流程</td></tr>
+      <tr><td><code>app/agent/discovery_parser.py</code></td><td><code>extract_competitors</code>(:11)</td><td>LLM 从搜索结果提取候选 + 本地规则校验</td></tr>
+      <tr><td><code>app/agent/competitor_verifier.py</code></td><td><code>extract_asin</code>(:13)、<code>find_target_asin</code>(:36)、<code>verify_candidate</code>(:104)</td><td>ASIN 解析、目标商品定位、候选详情页核验</td></tr>
+      <tr><td><code>app/agent/extractor.py</code></td><td><code>extract_product</code>(:14)</td><td>LLM 从网页文本抽取结构化商品（带缓存、8000 字截断）</td></tr>
+      <tr><td><code>app/agent/prompts.py</code></td><td><code>system_prompt</code>、<code>competitor_discovery_prompt</code></td><td>全部提示词与约束规则</td></tr>
+      <tr><td><code>app/agent/result_processor.py</code></td><td><code>attach_review_analysis</code>(:3)</td><td>把评论分析合并进 <code>CompetitorAnalysis</code></td></tr>
+      <tr><td><code>app/agent/verification_status.py</code></td><td><code>verify_product_specs</code></td><td>参数核验</td></tr>
+      <tr><td><code>app/llm/client.py</code></td><td><code>client</code></td><td><strong>全项目唯一 LLM 客户端</strong>（OpenAI 兼容）</td></tr>
+      <tr><td><code>app/tools/schema.py</code></td><td><code>tools</code></td><td>工具 JSON Schema（4 个，Agent 只用 3 个）</td></tr>
+      <tr><td><code>app/tools/web_search.py</code></td><td><code>search_web</code>(:15)</td><td>Tavily + 内存缓存</td></tr>
+      <tr><td><code>app/tools/web_reader.py</code></td><td><code>read_webpage</code>(:17)</td><td>requests + BeautifulSoup + 缓存 + 3 次重试</td></tr>
+      <tr><td><code>app/tools/knowledge_tool.py</code></td><td><code>search_knowledge</code>(:2)</td><td>RAG 检索封装</td></tr>
+      <tr><td><code>app/tools/product_review_tool.py</code></td><td><code>warmup_product_reviews</code>(:18)、<code>analyze_product_reviews_tool</code>(:36)</td><td>评论分析预热与 single-flight</td></tr>
+      <tr><td><code>app/analyzers/product_review_pipeline.py</code></td><td><code>analyze_product_reviews</code>(:12)</td><td>BrightData 采集 → LLM 情感分析</td></tr>
+      <tr><td><code>app/analyzers/user_analyzer.py</code></td><td><code>analyze_review_sentiment</code>(:66)</td><td>评论痛点 / 优点 / 建议分析</td></tr>
+      <tr><td><code>app/tools/brightdata_reviews.py</code></td><td><code>collect_amazon_reviews</code>(:28)</td><td>BrightData 数据集采集</td></tr>
+      <tr><td><code>app/workflow/analysis_workflow.py</code></td><td><code>AnalysisWorkflow.run</code>(:13)</td><td>任务串联执行器</td></tr>
+      <tr><td><code>app/workflow/tasks.py</code></td><td><code>discovery_task</code>(:10)、<code>analysis_task</code>(:54)、<code>report_task</code>(:121)、<code>create_workflow_tasks</code>(:137)</td><td>三阶段任务定义</td></tr>
+      <tr><td><code>app/reporter/markdown.py</code></td><td><code>generate_markdown</code>(:94)、<code>save_report</code>(:149)</td><td>报告模板与落盘</td></tr>
+      <tr><td><code>app/models/*</code></td><td><code>CompetitorAnalysis</code>、<code>CompetitorDiscovery</code>、<code>ProductExtraction</code>、<code>ReviewAnalysis</code></td><td>全链路数据契约</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ================= 7 ================= -->
+  <h2 id="s7"><span class="num">07</span>前后端接口实现文件（重点）</h2>
+
+  <p>前后端之间只有 <strong>3 个 HTTP 接口</strong>，全部定义在 <span class="path">backend/app/main.py</span>：</p>
+
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="method post">POST</span>
+      <code>/api/analysis</code>
+    </div>
+    <div class="endpoint-body">
+      <dl>
+        <dt>用途</dt><dd>创建分析任务，立即返回 task_id</dd>
+        <dt>请求体</dt><dd><code>{ "target_product": "HUADISK 256GB SSD" }</code>（<code>AnalysisRequest</code>）</dd>
+        <dt>响应体</dt><dd><code>{ task_id, status:"pending", message, target_product }</code>（<code>AnalysisResponse</code>）</dd>
+        <dt>处理函数</dt><dd><code>main.py:31 create_analysis</code> → <code>analysis_service.py:68 create_analysis_task</code></dd>
+        <dt>前端调用</dt><dd><code>api/analysis.js:3 createAnalysis</code></dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="method get">GET</span>
+      <code>/api/analysis/{task_id}</code>
+    </div>
+    <div class="endpoint-body">
+      <dl>
+        <dt>用途</dt><dd>查询任务状态（前端每 2 秒轮询）</dd>
+        <dt>响应体</dt><dd><code>{ task_id, target_product, status, error }</code></dd>
+        <dt>状态值</dt><dd><code>pending</code> / <code>running</code> / <code>completed</code> / <code>failed</code></dd>
+        <dt>处理函数</dt><dd><code>main.py:53 get_analysis_status</code>（直接读 <code>analysis_tasks</code>）</dd>
+        <dt>前端调用</dt><dd><code>api/analysis.js:26 getAnalysisStatus</code></dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="method get">GET</span>
+      <code>/api/analysis/{task_id}/report</code>
+    </div>
+    <div class="endpoint-body">
+      <dl>
+        <dt>用途</dt><dd>获取 Markdown 报告全文</dd>
+        <dt>响应体</dt><dd><code>{ task_id, status:"completed", report: "..." }</code></dd>
+        <dt>错误码</dt><dd>404 任务不存在 / 409 未完成或失败 / 500 路径无效</dd>
+        <dt>处理函数</dt><dd><code>main.py:73 get_analysis_report</code> → <code>Path.read_text()</code></dd>
+        <dt>前端调用</dt><dd><code>api/analysis.js:42 getAnalysisReport</code></dd>
+      </dl>
+    </div>
+  </div>
+
+  <p>另有 <code>GET /health</code>（<code>main.py:21</code>）用于健康检查，前端未使用。</p>
+
+  <div class="callout ok">
+    <span class="tag">接口契约链路</span>
+    <code>schemas.py</code> 定义请求/响应模型 → <code>main.py</code> 声明 <code>response_model</code> 并实现路由
+    → <code>api/analysis.js</code> 以相同的字段名（<code>target_product</code>、<code>task_id</code>、<code>status</code>、<code>report</code>）发起请求与解析响应。
+    三者之间<strong>没有自动生成的类型共享</strong>，字段名是手工对齐的。
+  </div>
+
+  <!-- ================= 8 ================= -->
+  <h2 id="s8"><span class="num">08</span>数据形态演进</h2>
+
+  <table>
+    <thead><tr><th>阶段</th><th>数据结构</th></tr></thead>
+    <tbody>
+      <tr><td>HTTP 请求</td><td><code>{ "target_product": "..." }</code></td></tr>
+      <tr><td>任务表记录</td><td><code>{ task_id, target_product, status, result, error }</code></td></tr>
+      <tr><td>工作流输入</td><td><code>{ task_id, target_product }</code></td></tr>
+      <tr><td>竞品发现后</td><td><code>+ target_asin</code>、<code>+ competitors: [{ name, asin, url }]</code></td></tr>
+      <tr><td>竞品分析后</td><td><code>{ task_id, target_product, analyses: [{ competitor_name, competitor_asin, competitor_url, analysis }] }</code></td></tr>
+      <tr><td><code>analysis</code> 字段</td><td><code>CompetitorAnalysis</code> Pydantic 对象（或 <code>{"error": ...}</code>），序列化后才进入报告</td></tr>
+      <tr><td>报告</td><td>Markdown 字符串</td></tr>
+      <tr><td>报告接口</td><td><code>{ task_id, status, report }</code></td></tr>
+      <tr><td>前端渲染</td><td><code>report</code> 字符串 → HTML → <code>DOMPurify.sanitize</code> → <code>v-html</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>线程模型</h3>
+  <table>
+    <thead><tr><th>执行位置</th><th>并发方式</th><th>代码</th></tr></thead>
+    <tbody>
+      <tr><td>每个任务</td><td>1 个 daemon <code>Thread</code></td><td><code>analysis_service.py:78</code></td></tr>
+      <tr><td>工作流三步</td><td>串行</td><td><code>analysis_workflow.py:15</code></td></tr>
+      <tr><td>竞品分析</td><td><code>ThreadPoolExecutor(3)</code></td><td><code>tasks.py:98</code></td></tr>
+      <tr><td>竞品发现搜索 / 核验</td><td>各 <code>ThreadPoolExecutor(3)</code></td><td><code>competitor_discovery.py:55</code>、<code>discovery_parser.py:141</code></td></tr>
+      <tr><td>评论采集</td><td>独立 <code>ThreadPoolExecutor(2)</code> + single-flight 缓存</td><td><code>product_review_tool.py:7</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>进程内缓存</h3>
+  <p>
+    所有缓存都在内存中，进程重启即失效：网页搜索（<code>web_search.py:9</code>）、网页正文（<code>web_reader.py:15</code>）、
+    商品提取（<code>extractor.py:3</code>）、评论分析（<code>product_review_pipeline.py:9</code>）、
+    embedding（<code>rag/embedding.py:9</code> 的 <code>lru_cache</code>）。
+  </p>
+
+  <!-- ================= 9 ================= -->
+  <h2 id="s9"><span class="num">09</span>风险清单与修复建议</h2>
+
+  <table>
+    <thead><tr><th class="nowrap">等级</th><th>问题</th><th>位置</th><th>修复建议</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="sev block">阻断</span></td>
+        <td>JS 文件里写了 <code>#</code> 注释，Vite 语法错误，开发服务器无法启动</td>
+        <td><code>frontend/vite.config.js:4</code></td>
+        <td>改为 <code>//</code> 注释或删除（当前未提交改动）</td>
+      </tr>
+      <tr>
+        <td><span class="sev block">阻断</span></td>
+        <td><code>&lt;style&gt;</code> 内使用 <code>//</code> 注释，<code>.success</code> 规则可能整条失效</td>
+        <td><code>AnalysisStatus.vue:58</code></td>
+        <td>改为 <code>/* ... */</code> 或删除</td>
+      </tr>
+      <tr>
+        <td><span class="sev high">高</span></td>
+        <td>默认 MOCK 模式，真实 Agent 不会执行</td>
+        <td><code>analysis_service.py:11</code></td>
+        <td>在 <code>.env</code> 显式设置 <code>MOCK_MODE=false</code>；或把默认值改为 <code>false</code></td>
+      </tr>
+      <tr>
+        <td><span class="sev high">高</span></td>
+        <td>没有 CORS 中间件，生产构建跨域会被浏览器拦截</td>
+        <td><code>backend/app/main.py</code></td>
+        <td>加 <code>CORSMiddleware</code>，或由 Nginx 反代同源部署</td>
+      </tr>
+      <tr>
+        <td><span class="sev high">高</span></td>
+        <td>任务状态是进程内字典，多 worker / 重启即丢失，且长期运行内存增长</td>
+        <td><code>analysis_service.py:12</code></td>
+        <td>迁移到 Redis / 数据库，并用 Celery / RQ 等任务队列</td>
+      </tr>
+      <tr>
+        <td><span class="sev mid">中</span></td>
+        <td>报告目录使用相对路径，依赖启动目录</td>
+        <td><code>reporter/markdown.py:152</code></td>
+        <td>基于项目根目录拼绝对路径</td>
+      </tr>
+      <tr>
+        <td><span class="sev mid">中</span></td>
+        <td>根目录 <code>main.py</code> 导入了已不存在的 <code>workflow_tasks</code></td>
+        <td><code>main.py:4</code></td>
+        <td>改用 <code>create_workflow_tasks()</code>，或删除旧入口</td>
+      </tr>
+      <tr>
+        <td><span class="sev mid">中</span></td>
+        <td>导入 <code>ProductForm.vue</code>，实际文件为 <code>productForm.vue</code>，Linux 构建会失败</td>
+        <td><code>AnalysisView.vue:6</code></td>
+        <td>统一文件名大小写</td>
+      </tr>
+      <tr>
+        <td><span class="sev mid">中</span></td>
+        <td>报告未标注数据来源，与架构文档要求不一致</td>
+        <td><code>reporter/markdown.py:94</code></td>
+        <td>在 <code>CompetitorAnalysis</code> 增加 source 字段，并在报告中输出</td>
+      </tr>
+      <tr>
+        <td><span class="sev mid">中</span></td>
+        <td><code>requirements.txt</code> 缺少 <code>fastapi</code>、<code>uvicorn</code>、<code>httpx2</code> 等依赖</td>
+        <td><code>requirements.txt</code></td>
+        <td>补全依赖或在 pyproject 中声明</td>
+      </tr>
+      <tr>
+        <td><span class="sev low">低</span></td>
+        <td>大量空占位模块（<code>routers.py</code>、<code>services.py</code>、<code>report_generator.py</code>、<code>positioning_analyzer.py</code>、<code>trend_analyzer.py</code>）</td>
+        <td><code>backend/app</code>、<code>app</code></td>
+        <td>实现或删除，避免误导</td>
+      </tr>
+      <tr>
+        <td><span class="sev low">低</span></td>
+        <td><code>discover_competitors</code> 工具已定义但不在 Agent 的 <code>allowed_tools</code> 中，<code>competitor_tool.py</code> 也未被调用</td>
+        <td><code>app/tools/schema.py:47</code>、<code>app/tools/competitor_tool.py</code></td>
+        <td>明确是否要走“Agent 自主发现”，否则删除</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ================= 10 ================= -->
+  <h2 id="s10"><span class="num">10</span>附：文件索引</h2>
+
+  <h3>前端</h3>
+<pre><code>frontend/
+├── index.html
+├── vite.config.js                  # /api 代理
+└── src/
+    ├── main.js                     # createApp
+    ├── App.vue                     # 渲染 AnalysisView
+    ├── api/analysis.js             # ★ 前后端交互唯一出口
+    ├── views/AnalysisView.vue      # ★ 状态机 / 轮询 / 渲染
+    └── components/
+        ├── productForm.vue         # 输入
+        └── AnalysisStatus.vue      # 状态展示</code></pre>
+
+  <h3>后端</h3>
+<pre><code>backend/app/
+├── main.py                         # ★ 全部 HTTP 路由
+├── schemas.py                      # ★ 请求 / 响应契约
+├── analysis_service.py             # ★ 任务表 + 后台线程
+├── routers.py                      # 空
+└── services.py                     # 空</code></pre>
+
+  <h3>Agent / 工作流 / 工具</h3>
+<pre><code>app/
+├── agent/          agent.py · competitor_discovery.py · discovery_parser.py
+│                   competitor_verifier.py · extractor.py · prompts.py
+│                   result_processor.py · verification_status.py
+├── workflow/       analysis_workflow.py · task.py · tasks.py
+├── tools/          schema.py · web_search.py · web_reader.py
+│                   knowledge_tool.py · product_review_tool.py
+│                   brightdata_reviews.py · competitor_tool.py
+├── analyzers/      product_review_pipeline.py · user_analyzer.py
+│                   price_analyzer.py · feature_analyzer.py
+├── rag/            retriever.py · embedding.py · vector_store.py
+├── llm/            client.py
+├── models/         competitor.py · discovery.py · extraction.py · review_analysis.py
+├── reporter/       markdown.py
+└── data/           knowledge/ · reviews/ · vector_store.json</code></pre>
+
+  <div class="footer">
+    <span>Amazon 智能竞品分析系统 · 数据流与架构分析</span>
+    <span>生成日期：2026-10-26</span>
+  </div>
+
+</div>
+
+</body>
+</html>

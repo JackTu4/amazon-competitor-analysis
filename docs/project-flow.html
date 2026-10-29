@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon 智能竞品分析系统 · 请求链路与部署说明</title>
+<style>
+  :root{
+    --ink:#1f2430;
+    --muted:#5b6472;
+    --accent:#2f5fd0;
+    --accent-soft:#eef3ff;
+    --line:#dfe4ec;
+    --code-bg:#f6f8fb;
+    --ok:#1a7f4b;
+    --ok-bg:#eefaf3;
+    --amber:#8a5a00;
+    --amber-bg:#fff8e6;
+    --warn:#b42318;
+    --warn-bg:#fff3f1;
+  }
+  *{box-sizing:border-box;}
+  html{
+    -webkit-text-size-adjust:100%;
+    scroll-behavior:smooth;
+  }
+  body{
+    margin:0;
+    padding:0;
+    color:var(--ink);
+    background:#eef1f6;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
+    font-size:15px;
+    line-height:1.75;
+  }
+  .page{
+    max-width:960px;
+    margin:32px auto 80px;
+    background:#fff;
+    padding:56px 64px 72px;
+    border-radius:14px;
+    box-shadow:0 10px 40px rgba(20,30,60,.10);
+  }
+
+  /* ---------- 封面 ---------- */
+  .eyebrow{
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:600;
+    margin-bottom:14px;
+  }
+  h1{
+    font-size:32px;
+    line-height:1.3;
+    margin:0 0 10px;
+    letter-spacing:-.01em;
+  }
+  .sub{
+    font-size:16px;
+    color:var(--muted);
+    margin:0 0 22px;
+  }
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .chip{
+    font-size:12.5px;
+    padding:3px 10px;
+    border-radius:999px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    border:1px solid #d6e2ff;
+    font-weight:500;
+  }
+
+  /* ---------- 目录 ---------- */
+  .toc{
+    margin:34px 0 8px;
+    padding:18px 20px;
+    background:var(--code-bg);
+    border:1px solid var(--line);
+    border-radius:10px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px 18px;
+  }
+  .toc a{
+    color:var(--ink);
+    text-decoration:none;
+    font-size:13.5px;
+    padding:3px 0;
+    display:block;
+  }
+  .toc a:hover{color:var(--accent);}
+  .toc span{
+    color:var(--muted);
+    font-variant-numeric:tabular-nums;
+    margin-right:8px;
+    font-size:12px;
+  }
+
+  /* ---------- 章节 ---------- */
+  section{margin-top:56px;}
+  h2{
+    font-size:21px;
+    margin:0 0 6px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+  }
+  h2 .no{
+    font-size:13px;
+    color:var(--accent);
+    font-weight:700;
+    letter-spacing:.08em;
+    font-variant-numeric:tabular-nums;
+  }
+  .lede{
+    color:var(--muted);
+    font-size:14px;
+    margin:12px 0 24px;
+  }
+
+  /* ---------- 总览流程图 ---------- */
+  .flow{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:0;
+    margin:8px 0 6px;
+  }
+  .node{
+    border:1px solid var(--line);
+    border-left:3px solid var(--accent);
+    border-radius:8px;
+    padding:12px 16px;
+    background:#fff;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+  }
+  .node .n-title{font-weight:600;font-size:14.5px;}
+  .node .n-file{
+    font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+    font-size:12px;
+    color:var(--muted);
+    text-align:right;
+    flex-shrink:0;
+  }
+  .node.side{
+    border-left-color:var(--ok);
+    background:var(--ok-bg);
+  }
+  .node.side .n-title{color:var(--ok);}
+  .arrow{
+    text-align:center;
+    color:#b6c0d0;
+    font-size:13px;
+    line-height:1.4;
+    padding:2px 0;
+  }
+  .arrow small{
+    display:block;
+    font-size:11.5px;
+    color:var(--muted);
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+
+  /* ---------- 步骤 ---------- */
+  .steps{
+    position:relative;
+    margin-top:6px;
+    padding-left:0;
+  }
+  .steps::before{
+    content:"";
+    position:absolute;
+    left:21px;
+    top:14px;
+    bottom:14px;
+    width:2px;
+    background:linear-gradient(#d8e2f5,#e8edf6);
+  }
+  .step{
+    position:relative;
+    display:grid;
+    grid-template-columns:44px 1fr;
+    gap:18px;
+    padding:12px 0 20px;
+  }
+  .step .num{
+    position:relative;
+    z-index:1;
+    width:44px;
+    height:30px;
+    border-radius:8px;
+    background:#fff;
+    color:var(--accent);
+    border:1.5px solid #c8d7f5;
+    font-size:12.5px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-variant-numeric:tabular-nums;
+    margin-top:2px;
+  }
+  .step .body{min-width:0;}
+  .file-path{
+    font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+    font-size:13px;
+    font-weight:600;
+    color:#24344f;
+    background:var(--code-bg);
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:2px 8px;
+    display:inline-block;
+    word-break:break-all;
+    margin-bottom:8px;
+  }
+  .step p{margin:0 0 10px;font-size:14.2px;}
+  .ret{
+    font-size:13.5px;
+    background:var(--ok-bg);
+    border:1px solid #cdeedc;
+    border-radius:7px;
+    padding:9px 13px;
+    color:#14532d;
+  }
+  .ret .lbl{
+    font-weight:700;
+    color:var(--ok);
+    margin-right:8px;
+    font-size:12px;
+    letter-spacing:.06em;
+  }
+  .ret code{background:#fff;border:1px solid #cdeedc;}
+  .note{
+    font-size:13px;
+    color:var(--amber);
+    background:var(--amber-bg);
+    border:1px solid #f3e2b8;
+    border-radius:7px;
+    padding:8px 12px;
+    margin-top:8px;
+  }
+
+  code{
+    font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+    font-size:.92em;
+    background:var(--code-bg);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:1px 5px;
+    color:#24344f;
+  }
+  pre{
+    font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+    font-size:12.8px;
+    line-height:1.65;
+    background:var(--code-bg);
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:16px 18px;
+    overflow-x:auto;
+    margin:14px 0;
+  }
+  pre code{background:none;border:none;padding:0;font-size:inherit;}
+
+  /* ---------- 表格 ---------- */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.6px;
+    margin:16px 0 8px;
+  }
+  th{
+    text-align:left;
+    font-weight:600;
+    color:var(--muted);
+    font-size:12.5px;
+    letter-spacing:.03em;
+    border-bottom:1.5px solid var(--line);
+    padding:8px 10px;
+    white-space:nowrap;
+  }
+  td{
+    border-bottom:1px solid #eef1f6;
+    padding:9px 10px;
+    vertical-align:top;
+  }
+  tbody tr:nth-child(even){background:#fafbfd;}
+  td.mono,th.mono{
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+    font-size:12.5px;
+  }
+
+  /* ---------- 卡片组 ---------- */
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
+    margin:18px 0;
+  }
+  .card{
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:14px 16px;
+    background:#fff;
+  }
+  .card h4{
+    margin:0 0 6px;
+    font-size:14px;
+  }
+  .card p{
+    margin:0;
+    font-size:13.2px;
+    color:var(--muted);
+  }
+
+  .badge{
+    display:inline-block;
+    font-size:11.5px;
+    font-weight:600;
+    padding:1px 8px;
+    border-radius:999px;
+    vertical-align:middle;
+  }
+  .b-ok{background:var(--ok-bg);color:var(--ok);border:1px solid #cdeedc;}
+  .b-warn{background:var(--warn-bg);color:var(--warn);border:1px solid #f5d3ce;}
+  .b-amber{background:var(--amber-bg);color:var(--amber);border:1px solid #f3e2b8;}
+
+  footer{
+    margin-top:64px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+    color:var(--muted);
+    font-size:12.5px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  @media (max-width:820px){
+    .page{padding:32px 24px 48px;margin:0;border-radius:0;}
+    .toc{grid-template-columns:1fr;}
+    .cards{grid-template-columns:1fr;}
+    h1{font-size:25px;}
+    .node{flex-direction:column;align-items:flex-start;gap:4px;}
+    .node .n-file{text-align:left;}
+  }
+  @media print{
+    body{background:#fff;}
+    .page{box-shadow:none;margin:0;padding:0;}
+    .toc{display:none;}
+    section{break-inside:avoid-page;}
+    .step{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">项目技术文档 · 2026-10-27</div>
+    <h1>Amazon 智能竞品分析系统<br>请求链路与部署说明</h1>
+    <p class="sub">一次分析请求从 Vue 按钮出发，到 MySQL 里生成报告的完整路径：经过哪些文件、每个文件返回什么、Docker 与 MySQL 如何连接。</p>
+    <div class="chips">
+      <span class="chip">Vue 3</span>
+      <span class="chip">FastAPI</span>
+      <span class="chip">RQ + Redis</span>
+      <span class="chip">Docker</span>
+      <span class="chip">MySQL 8.0</span>
+      <span class="chip">SQLAlchemy 2.0</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <a href="#overview"><span>01</span>总览：进程与存储</a>
+    <a href="#pipeline"><span>02</span>请求链路（11 步）</a>
+    <a href="#agent"><span>03</span>真实分析内部</a>
+    <a href="#returns"><span>04</span>返回数据速查</a>
+    <a href="#infra"><span>05</span>Docker 与 MySQL</a>
+    <a href="#notes"><span>06</span>容易踩的点</a>
+  </nav>
+
+  <!-- ============ 01 总览 ============ -->
+  <section id="overview">
+    <h2><span class="no">01</span>总览：三个进程、两种存储</h2>
+    <p class="lede">前端与 FastAPI 跑在 Windows 本机，只有 RQ Worker 在 Docker 里；MySQL 是本机服务，不在容器中。</p>
+
+    <div class="flow">
+      <div class="node">
+        <span class="n-title">浏览器 · Vue 开发服务器</span>
+        <span class="n-file">frontend · :5173</span>
+      </div>
+      <div class="arrow">▼ <small>POST /api/analysis</small></div>
+
+      <div class="node">
+        <span class="n-title">FastAPI 接口层</span>
+        <span class="n-file">backend/app/main.py · :8000</span>
+      </div>
+      <div class="arrow">▼ <small>写 pending 记录</small></div>
+
+      <div class="node side">
+        <span class="n-title">MySQL · projects</span>
+        <span class="n-file">Windows 服务 MySQL80 · :3306</span>
+      </div>
+      <div class="arrow">▼ <small>enqueue(job_id = task_id)</small></div>
+
+      <div class="node">
+        <span class="n-title">Redis 队列</span>
+        <span class="n-file">docker: agent-redis · :6379</span>
+      </div>
+      <div class="arrow">▼ <small>Worker 阻塞消费</small></div>
+
+      <div class="node">
+        <span class="n-title">RQ Worker · 真实分析</span>
+        <span class="n-file">docker: agent-worker</span>
+      </div>
+      <div class="arrow">▼ <small>LLM + Tavily + BrightData</small></div>
+
+      <div class="node side">
+        <span class="n-title">MySQL · reports + reports/*.md</span>
+        <span class="n-file">projects.status = completed</span>
+      </div>
+      <div class="arrow">▼ <small>前端每 2 秒轮询</small></div>
+
+      <div class="node">
+        <span class="n-title">浏览器渲染 Markdown 报告</span>
+        <span class="n-file">AnalysisView.vue</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 请求链路 ============ -->
+  <section id="pipeline">
+    <h2><span class="no">02</span>请求链路：依次经过的文件</h2>
+    <p class="lede">按代码实际执行顺序排列，每一步标注「文件 → 做了什么 → 返回什么」。</p>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="num">01</div>
+        <div class="body">
+          <div class="file-path">backend/app/main.py</div>
+          <p>创建 <code>FastAPI</code> 实例，注册 <code>router</code>，提供 <code>/health</code> 健康检查。启动命令：<code>uvicorn backend.app.main:app --port 8000</code>。</p>
+          <div class="ret"><span class="lbl">返回</span><code>{"status":"ok","message":"Amazon 竞品分析后端运行正常"}</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">02</div>
+        <div class="body">
+          <div class="file-path">frontend/src/views/AnalysisView.vue → frontend/src/api/analysis.js</div>
+          <p><code>startAnalysis()</code> 调用 <code>createAnalysis()</code>，发送 <code>POST /api/analysis</code>，请求体 <code>{"target_product":"..."}</code>。随后 <code>pollStatus()</code> 每 2 秒轮询一次。</p>
+          <div class="ret"><span class="lbl">返回</span><code>{ task_id, status: "pending", message, target_product }</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">03</div>
+        <div class="body">
+          <div class="file-path">backend/app/routers.py:18 · backend/app/schemas.py</div>
+          <p><code>create_analysis()</code> 用 pydantic 模型 <code>AnalysisRequest</code> 校验入参（<code>target_product</code>，min_length=1），空值返回 422，然后调用服务层。</p>
+          <div class="ret"><span class="lbl">返回</span><code>AnalysisResponse</code> → <code>{ task_id, status: "pending", message, target_product }</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">04</div>
+        <div class="body">
+          <div class="file-path">backend/app/services/analysis_service.py:20</div>
+          <p><code>create_analysis_task()</code>：<code>uuid4()</code> 生成 task_id → 在 MySQL 建 pending 记录 → 推入 Redis 队列。入队失败会把任务标为 <code>failed</code> 并抛异常，避免长期卡在 pending。</p>
+          <div class="ret"><span class="lbl">返回</span><code>task_id: str</code>（UUID 字符串）</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">05</div>
+        <div class="body">
+          <div class="file-path">backend/app/services/task_service.py:66 · db/crud/project.py:7 · db/models/project.py</div>
+          <p><code>create_task_record()</code> → <code>create_project()</code> 插入 <code>projects</code> 表，<code>status="pending"</code>。ORM 模型 <code>Project</code> 字段：<code>task_id / target_product / status / result / error / created_at / updated_at</code>。</p>
+          <div class="ret"><span class="lbl">返回</span><code>Project</code> 对象；service 层提交事务后返回 <code>None</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">06</div>
+        <div class="body">
+          <div class="file-path">backend/app/queue/task_producer.py:4 → rq_config.py:6 → redis_client.py:13</div>
+          <p>拿到名为 <code>analysis</code> 的 RQ 队列（<code>default_timeout=1800</code>），把 <code>execute_analysis_job</code> 入队。参数：<code>job_id=task_id</code>、<code>job_timeout=1800</code>、<code>result_ttl=3600</code>。</p>
+          <div class="ret"><span class="lbl">返回</span><code>rq.job.Job</code> 对象（job.id 即 task_id）</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">07</div>
+        <div class="body">
+          <div class="file-path">backend/app/workers/worker.py:6 · workers/analysis_jobs.py</div>
+          <p>容器启动命令 <code>python -m backend.app.workers.worker</code>，<code>Worker(queues=["analysis"])</code> 阻塞消费。取到任务后由 <code>execute_analysis_job()</code> 转交 <code>run_analysis()</code>。</p>
+          <div class="ret"><span class="lbl">返回</span>RQ 会把 <code>run_analysis()</code> 的返回值存进 Redis（这里为 <code>None</code>）</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">08</div>
+        <div class="body">
+          <div class="file-path">backend/app/services/analysis_service.py:69</div>
+          <p><code>run_analysis()</code>：先把状态更新为 <code>running</code>，再调用工作流；校验返回的是「存在的文件路径」，否则抛错；失败则写 <code>failed</code> + 错误信息。</p>
+          <div class="ret"><span class="lbl">返回</span><code>None</code>（状态与结果全部写进 MySQL）</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">09</div>
+        <div class="body">
+          <div class="file-path">backend/app/services/workflow_service.py:44</div>
+          <p><code>execute_workflow()</code> 按 <code>MOCK_MODE</code> 分流：mock 模式拼一段假 Markdown；真实模式用 <code>AnalysisWorkflow</code> 串行执行三个 Task（见下一节）。</p>
+          <div class="ret"><span class="lbl">返回</span><code>Path("reports/&lt;task_id&gt;.md")</code>；任一步失败则返回 <code>{"error": "..."}</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">10</div>
+        <div class="body">
+          <div class="file-path">backend/app/services/report_service.py:14 · db/crud/report.py:6</div>
+          <p><code>save_completed_report()</code>：读取 md 文件 → 写入（或更新）<code>reports</code> 表 → 同一事务里把 <code>projects.status</code> 置为 <code>completed</code>、<code>result</code> 存文件路径 → <code>commit</code>。</p>
+          <div class="ret"><span class="lbl">返回</span><code>None</code>；报告正文与文件路径已落库</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">11</div>
+        <div class="body">
+          <div class="file-path">backend/app/routers.py:39 / :54 → services/task_service.py:47 / report_service.py:75</div>
+          <p>前端轮询两个接口：状态接口返回任务行，报告接口在任务完成后返回 Markdown 正文。<strong>报告正文读自 MySQL 的 <code>reports.markdown</code></strong>，<code>reports/*.md</code> 只是落盘备份。</p>
+          <div class="ret"><span class="lbl">返回</span>状态：<code>{task_id, target_product, status, result, error}</code><br>报告：<code>{task_id, status, report, error}</code>，未完成时 <code>report</code> 为 <code>null</code></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 03 真实分析内部 ============ -->
+  <section id="agent">
+    <h2><span class="no">03</span>真实分析内部：三个 Task 与 Agent 循环</h2>
+    <p class="lede"><code>AnalysisWorkflow.run()</code> 把上一个 Task 的返回值作为下一个的入参，任一步抛异常就 <code>break</code> 并返回错误字典。</p>
+
+    <table>
+      <thead>
+        <tr><th>顺序</th><th>文件 / 函数</th><th>做什么</th><th>返回值</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">1</td>
+          <td class="mono">app/workflow/tasks.py:10<br>discovery_task</td>
+          <td><code>find_target_asin()</code> 确定目标 ASIN，预热目标商品评论采集，<code>run_discovery()</code> 找候选竞品，取前 3 个</td>
+          <td>原 data 字典，追加 <code>target_asin</code> 与<br><code>competitors=[{name, asin, url}]</code></td>
+        </tr>
+        <tr>
+          <td class="mono">2</td>
+          <td class="mono">app/workflow/tasks.py:54<br>analysis_task</td>
+          <td>3 线程并发调用 <code>competitor_agent()</code> 逐个竞品分析，单个失败不影响其余</td>
+          <td><code>{task_id, target_product, analyses:[{competitor_name, competitor_asin, competitor_url, analysis}]}</code></td>
+        </tr>
+        <tr>
+          <td class="mono">3</td>
+          <td class="mono">app/workflow/tasks.py:121<br>report_task</td>
+          <td><code>generate_markdown()</code> 拼报告，<code>save_report()</code> 写入 <code>reports/</code></td>
+          <td><code>Path("reports/&lt;task_id&gt;.md")</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="lede" style="margin-top:28px"><code>competitor_agent()</code>（<code>app/agent/agent.py:70</code>）是一个最多 3 轮的 function-calling 循环：</p>
+
+    <div class="cards">
+      <div class="card">
+        <h4>search_knowledge</h4>
+        <p>本地 RAG 检索，向量存在 <code>app/data/vector_store.json</code>。返回 <code>{query, results:[{text, source, score}]}</code>。</p>
+      </div>
+      <div class="card">
+        <h4>search_web</h4>
+        <p>Tavily 搜索 + 网页正文读取 + <code>extract_product()</code> 结构化。返回 <code>ProductExtraction</code>（product / price / features / source / rating / reviews / bullet_points）。</p>
+      </div>
+      <div class="card">
+        <h4>analyze_product_reviews</h4>
+        <p>BrightData 抓评论后交给评论分析流水线，返回 <code>ReviewAnalysis</code> 字典（痛点、优点、改进建议、总结）。</p>
+      </div>
+      <div class="card">
+        <h4>最终输出</h4>
+        <p>模型输出 JSON → 校验成 <code>CompetitorAnalysis</code>（目标产品、竞品、价差、总结）；失败返回 <code>{error, message}</code>。</p>
+      </div>
+    </div>
+
+    <div class="note">最后一轮会追加一条 system 消息并设置 <code>tool_choice="none"</code>，强制模型直接输出 JSON，避免无限调用工具。</div>
+  </section>
+
+  <!-- ============ 04 返回数据速查 ============ -->
+  <section id="returns">
+    <h2><span class="no">04</span>返回数据速查</h2>
+    <p class="lede">排查问题时按这张表对照，能快速定位是哪一层返回了不符合预期的数据。</p>
+
+    <table>
+      <thead>
+        <tr><th>文件</th><th>函数</th><th>返回</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">routers.py</td><td class="mono">create_analysis</td><td><code>{task_id, status:"pending", message, target_product}</code></td></tr>
+        <tr><td class="mono">routers.py</td><td class="mono">get_analysis_status</td><td><code>{task_id, target_product, status, result, error}</code> 或 404</td></tr>
+        <tr><td class="mono">routers.py</td><td class="mono">get_analysis_report_api</td><td><code>{task_id, status, report, error}</code></td></tr>
+        <tr><td class="mono">analysis_service.py</td><td class="mono">create_analysis_task</td><td><code>str</code> task_id</td></tr>
+        <tr><td class="mono">analysis_service.py</td><td class="mono">run_analysis</td><td><code>None</code>（抛异常表示失败）</td></tr>
+        <tr><td class="mono">task_service.py</td><td class="mono">get_analysis_task</td><td><code>{task_id, target_product, status, result, error}</code> 或 <code>None</code></td></tr>
+        <tr><td class="mono">task_service.py</td><td class="mono">create_task_record</td><td><code>None</code></td></tr>
+        <tr><td class="mono">report_service.py</td><td class="mono">save_completed_report</td><td><code>None</code></td></tr>
+        <tr><td class="mono">report_service.py</td><td class="mono">get_analysis_report</td><td><code>{task_id, report, file_path}</code> 或 <code>None</code></td></tr>
+        <tr><td class="mono">task_producer.py</td><td class="mono">enqueue_analysis_task</td><td><code>rq.job.Job</code></td></tr>
+        <tr><td class="mono">workflow_service.py</td><td class="mono">execute_workflow</td><td><code>Path</code> 或 <code>{"error": ...}</code></td></tr>
+        <tr><td class="mono">tasks.py</td><td class="mono">discovery_task</td><td>data 字典（含 <code>target_asin</code>、<code>competitors</code>）</td></tr>
+        <tr><td class="mono">tasks.py</td><td class="mono">analysis_task</td><td><code>{task_id, target_product, analyses}</code></td></tr>
+        <tr><td class="mono">tasks.py</td><td class="mono">report_task</td><td><code>Path</code></td></tr>
+        <tr><td class="mono">agent.py</td><td class="mono">competitor_agent</td><td><code>CompetitorAnalysis</code> 或 <code>{error, message}</code></td></tr>
+        <tr><td class="mono">markdown.py</td><td class="mono">generate_markdown</td><td><code>str</code>（完整 Markdown）</td></tr>
+        <tr><td class="mono">markdown.py</td><td class="mono">save_report</td><td><code>Path("reports/&lt;task_id&gt;.md")</code></td></tr>
+        <tr><td class="mono">competitor_verifier.py</td><td class="mono">find_target_asin</td><td><code>{asin, title, url}</code> 或 <code>None</code></td></tr>
+        <tr><td class="mono">competitor_discovery.py</td><td class="mono">run_discovery</td><td><code>CompetitorDiscovery</code>（<code>candidates[]</code>，每项含 product_name / asin / source_url / confidence）</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 05 Docker 与 MySQL ============ -->
+  <section id="infra">
+    <h2><span class="no">05</span>Docker 与 MySQL 如何连接</h2>
+    <p class="lede">Docker 只负责 Worker 和 Redis；MySQL 是宿主机上的 Windows 服务，容器通过 <code>host.docker.internal</code> 反向访问它。</p>
+
+    <h3 style="font-size:15px;margin:26px 0 4px">当前运行中的容器</h3>
+    <table>
+      <thead><tr><th>容器</th><th>镜像</th><th>端口</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">agent-worker</td><td class="mono">analysissystem-worker</td><td class="mono">—</td><td>RQ Worker，真正的分析进程</td></tr>
+        <tr><td class="mono">agent-redis</td><td class="mono">redis:7-alpine</td><td class="mono">127.0.0.1:6379</td><td>任务队列</td></tr>
+        <tr><td class="mono">neo4j</td><td class="mono">neo4j:5</td><td class="mono">7474 / 7687</td><td><span class="badge b-amber">与本项目无关</span></td></tr>
+      </tbody>
+    </table>
+    <p class="lede" style="margin-top:8px">MySQL 不在容器里：Windows 服务 <code>MySQL80</code>，监听 <code>0.0.0.0:3306</code>。</p>
+
+    <h3 style="font-size:15px;margin:26px 0 4px">compose.yaml 逐项含义</h3>
+    <pre><code>services:
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+
+    working_dir: /workspace
+    volumes:
+      - .:/workspace          # 整个项目挂进容器，reports/ 与宿主机共享
+
+    env_file:
+      - .env                  # 复用本机配置
+
+    environment:
+      REDIS_URL: redis://agent-redis:6379/0   # 覆盖：容器内用服务名，不能用 127.0.0.1
+      DB_HOST: host.docker.internal           # 覆盖：访问宿主机 MySQL 的固定域名
+      MOCK_MODE: "false"                      # 容器内跑真实 Agent，不是 mock
+
+    networks:
+      - agent-network         # external: true，需提前创建
+
+networks:
+  agent-network:
+    external: true</code></pre>
+
+    <div class="note">
+      <strong>为什么必须覆盖：</strong><code>.env</code> 里写的是 <code>DB_HOST=127.0.0.1</code>，那是给本机 FastAPI 用的。同一个文件被容器读进去后，<code>127.0.0.1</code> 指向容器自己，所以 <code>compose.yaml</code> 用 <code>environment</code> 把它改成 <code>host.docker.internal</code>；Redis 同理改成服务名 <code>agent-redis</code>。
+    </div>
+
+    <h3 style="font-size:15px;margin:26px 0 4px">MySQL 连接代码</h3>
+    <p><code>backend/app/db/database.py</code> 是唯一入口：</p>
+    <ul style="font-size:14px;margin:8px 0 0;padding-left:22px">
+      <li><code>parents[3]</code> 定位项目根，<code>load_dotenv()</code> 读取根目录 <code>.env</code></li>
+      <li>读取 <code>DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME</code>，<strong>缺密码直接 <code>RuntimeError</code></strong></li>
+      <li>用 <code>URL.create(drivername="mysql+pymysql", ...)</code> 构建连接串，<code>charset=utf8mb4</code>（URL 对象而非字符串拼接，密码含特殊字符也不会出错）</li>
+      <li><code>create_engine(pool_pre_ping=True, pool_recycle=1800)</code>：防止 MySQL 空闲断连</li>
+      <li><code>SessionLocal</code> 会话工厂 + <code>Base</code> ORM 基类 + <code>get_db()</code> 依赖</li>
+    </ul>
+
+    <p class="lede" style="margin-top:18px">实际写库用的是 <code>services/*.py</code> 里的 <code>with SessionLocal() as db:</code>。<code>get_db()</code> 虽然定义了，但路由层目前没有使用。</p>
+
+    <h3 style="font-size:15px;margin:26px 0 4px">建表方式</h3>
+    <p style="font-size:14px;margin:0">项目里<strong>没有迁移脚本</strong>，<code>Base.metadata.create_all()</code> 只出现在 <code>tests/testDb/test_db_models.py</code>。当前库 <code>competitor_analysis</code> 中有 4 张表：</p>
+    <table>
+      <thead><tr><th>表</th><th>是否在用</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">projects</td><td><span class="badge b-ok">使用中</span></td><td>task_id 主键，status / result / error</td></tr>
+        <tr><td class="mono">reports</td><td><span class="badge b-ok">使用中</span></td><td>task_id 外键且唯一，存 Markdown 正文与文件路径</td></tr>
+        <tr><td class="mono">products</td><td><span class="badge b-warn">未写入</span></td><td>CRUD 已写，但没有任何调用方</td></tr>
+        <tr><td class="mono">sources</td><td><span class="badge b-warn">未写入</span></td><td>同上，属于预留</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:15px;margin:26px 0 4px">正确的启动顺序</h3>
+    <pre><code># 1. MySQL（Windows 服务，通常已自启）
+net start MySQL80
+
+# 2. Redis 容器与网络（只需一次）
+docker network create agent-network
+docker run -d --name agent-redis --network agent-network \
+  -p 127.0.0.1:6379:6379 redis:7-alpine
+
+# 3. Worker（在项目根目录）
+docker compose up -d --build worker
+
+# 4. FastAPI（backend 与 app 两个包都要可导入，必须在项目根执行）
+uvicorn backend.app.main:app --reload --port 8000
+
+# 5. 前端
+cd frontend &amp;&amp; npm run dev</code></pre>
+  </section>
+
+  <!-- ============ 06 注意事项 ============ -->
+  <section id="notes">
+    <h2><span class="no">06</span>容易踩的点</h2>
+
+    <div class="cards">
+      <div class="card">
+        <h4>MOCK_MODE 决定真假分析</h4>
+        <p>本机直接跑 FastAPI 时默认 <code>true</code>，只会生成假报告；只有容器里被覆盖成 <code>false</code>。本机单跑后端不出真报告是正常现象。</p>
+      </div>
+      <div class="card">
+        <h4>报告是双写的</h4>
+        <p>接口读的是 <code>reports.markdown</code>，<code>reports/*.md</code> 只是备份。手动改 md 文件不会同步到接口。</p>
+      </div>
+      <div class="card">
+        <h4>任务超时 1800 秒</h4>
+        <p>队列默认超时与 job_timeout 都是 30 分钟；一轮真实分析（搜索 + 抓取 + 3 轮 LLM）容易逼近这个上限。</p>
+      </div>
+      <div class="card">
+        <h4>host.docker.internal 的适用范围</h4>
+        <p>只在 Docker Desktop 上有效。换成 WSL2 原生 Docker 或 Linux 主机时需要另行配置。</p>
+      </div>
+      <div class="card">
+        <h4>被轮询接口的 404 分支</h4>
+        <p>任务不存在返回 404；任务完成但报告缺失也返回 404，前端会把两种情况都当成失败提示。</p>
+      </div>
+      <div class="card">
+        <h4>孤儿 pending 任务</h4>
+        <p>入队成功但 Worker 未消费时会长期停在 <code>pending</code>，不会自动超时；需要手动清理或重投。</p>
+      </div>
+      <div class="card">
+        <h4>接口鉴权与 CORS</h4>
+        <p><code>/api</code> 下的路由统一要求请求头 <code>X-API-Key</code>，值取自根目录 <code>.env</code> 的 <code>API_KEY</code>；前端用 <code>frontend/.env</code> 的 <code>VITE_API_KEY</code> 携带。跨域只放行 <code>ALLOWED_ORIGINS</code> 白名单，<code>/health</code> 不鉴权。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Amazon 智能竞品分析系统 · 请求链路与部署说明</span>
+    <span>依据 master 分支代码整理 · 2026-10-27</span>
+  </footer>
+
+</div>
+</body>
+</html>

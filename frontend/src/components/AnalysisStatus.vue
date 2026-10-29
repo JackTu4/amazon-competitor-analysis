@@ -55,6 +55,7 @@ defineProps({
   </div>
 </template>
 
+<!-- scoped：样式只作用于当前组件 -->
 <style scoped>
 .success {
   margin-top: 30px;

@@ -1,3 +1,7 @@
+import pytest
+
+pytestmark = pytest.mark.llm
+
 from app.rag.retriever import retrieve
 def test_retrieve():
     results = retrieve(

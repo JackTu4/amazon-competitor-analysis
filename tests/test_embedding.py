@@ -1,3 +1,7 @@
+import pytest
+
+pytestmark = pytest.mark.llm
+
 from app.rag.embedding import get_embedding
 def test_get_embedding():
     text = "KingSpec SSD 的读取速度最高可达 2400MB/s。"

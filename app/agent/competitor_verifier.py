@@ -6,9 +6,29 @@ import re
 from urllib.parse import urlparse
 from app.agent.verification_status import verify_product_specs
 
-def extract_capacity(text: str) -> str | None:
-    m = re.search(r"(\d+)\s*(?:gb|tb)", text or "", re.IGNORECASE)
-    return m.group(1) if m else None
+_CAPACITY_PATTERN = re.compile(
+    r"(\d+(?:\.\d+)?)\s*(tb|gb|t|g)\b",
+    re.IGNORECASE,
+)
+
+
+def extract_capacity(text: str) -> int | None:
+    """提取容量并统一折算成 MB，便于跨单位比较（1TB = 1024GB）。
+
+    只识别 TB/GB/T/G，避免把 "3500 MB/s" 这类读写速度误当成容量。
+    """
+
+    m = _CAPACITY_PATTERN.search(text or "")
+    if not m:
+        return None
+
+    value = float(m.group(1))
+    unit = m.group(2).lower()
+
+    if unit.startswith("t"):
+        return int(value * 1024 * 1024)
+
+    return int(value * 1024)
 
 def extract_asin(url: str) -> str | None:
     """从亚马逊商品 URL 中提取 ASIN。"""
@@ -34,58 +54,88 @@ def extract_asin(url: str) -> str | None:
 
 
 def find_target_asin(target_product: str) -> dict | None:
-    """搜索目标商品，并初步校验 Amazon 商品标题。"""
-    query = f"{target_product} site:amazon.com product"
+    """搜索目标商品，并初步校验 Amazon 商品标题。
 
-    results = search_web(
-        query,
-        include_domains=["amazon.com"],
-    )
+    Tavily 对带 "site:amazon.com product" 的查询有时只返回分类列表页，
+    因此按多个查询依次尝试，并选关键词重合度最高的商品详情页。
+    """
+    queries = [
+        f"{target_product} site:amazon.com",
+        f"{target_product} amazon.com/dp",
+        f"{target_product} site:amazon.com product",
+    ]
 
-    if not results:
-        print("没有搜索到目标商品网页")
-        return None
-
-    # 兼容搜索工具返回列表或单个结果
-    results = results if isinstance(results, list) else [results]
-
-    # 从目标商品描述中提取品牌和容量线索
+    # 从目标商品描述中提取品牌、容量和关键词线索
     target_text = target_product.casefold()
     target_capacity = extract_capacity(target_product)
+    target_tokens = [
+        token
+        for token in re.split(r"[^a-z0-9]+", target_text)
+        if token
+    ]
 
-    for result in results:
-        title = result.title or ""
-        url = result.url or ""
-        asin = extract_asin(url)
+    best: dict | None = None
+    best_score = 0
+    seen_asins: set[str] = set()
 
-        if not asin:
+    for query in queries:
+        results = search_web(
+            query,
+            include_domains=["amazon.com"],
+            max_results=10,
+        )
+
+        if not results:
             continue
 
-        title_lower = title.casefold()
+        # 兼容搜索工具返回列表或单个结果
+        results = results if isinstance(results, list) else [results]
 
-        # 如果目标商品指定了容量，而标题中也出现容量，
-        # 则两者不一致时跳过。
-        title_capacity = extract_capacity(title)
-        if (
-            target_capacity
-            and title_capacity
-            and target_capacity != title_capacity
-        ):
-            print("目标商品容量不匹配，跳过：", title)
-            continue
+        for result in results:
+            title = result.title or ""
+            url = result.url or ""
+            asin = extract_asin(url)
 
-        print("候选目标商品：", title)
-        print("商品链接：", url)
-        print("提取到的 ASIN：", asin)
+            if not asin or asin in seen_asins:
+                continue
+            seen_asins.add(asin)
 
-        # 返回候选结果，供后续检查
-        return {
-            "asin": asin,
-            "title": title,
-            "url": url,
-        }
-    print("没有找到符合基本条件的 Amazon 商品详情页")
-    return None
+            title_lower = title.casefold()
+
+            # 如果目标商品指定了容量，而标题中也出现容量，
+            # 则两者不一致时跳过。
+            title_capacity = extract_capacity(title)
+            if (
+                target_capacity
+                and title_capacity
+                and target_capacity != title_capacity
+            ):
+                print("目标商品容量不匹配，跳过：", title)
+                continue
+
+            score = sum(
+                1 for token in target_tokens if token in title_lower
+            )
+
+            print("候选目标商品：", title)
+            print("商品链接：", url)
+            print("提取到的 ASIN：", asin)
+
+            if score > best_score:
+                best_score = score
+                best = {
+                    "asin": asin,
+                    "title": title,
+                    "url": url,
+                }
+
+        # 已找到覆盖绝大多数关键词的结果，无需再换查询
+        if best and best_score >= max(2, len(target_tokens) - 1):
+            break
+
+    if best is None:
+        print("没有找到符合基本条件的 Amazon 商品详情页")
+    return best
 
 def is_candidate_url_match(candidate, url: str) -> bool:
     """初步判断 Amazon URL 是否与候选商品匹配。"""
@@ -145,6 +195,7 @@ def verify_candidate(candidate: CompetitorCandidate,target_product: str,) -> Com
         return candidate
     results = results if isinstance(results, list) else [results]
     target_brand = (candidate.brand or "").casefold()
+    input_brand = (target_product.strip().split() or [""])[0].casefold()
     target_name = candidate.product_name.casefold()
     target_model = (candidate.model or "").casefold()
     candidate_capacity = extract_capacity(
@@ -185,7 +236,8 @@ def verify_candidate(candidate: CompetitorCandidate,target_product: str,) -> Com
         ):
             print("商品标题匹配度不足，跳过：", url)
             continue
-        if "huadisk" in title:
+        if input_brand and input_brand in title:
+            print("跳过目标品牌商品：", result_title)
             continue
         if candidate_capacity:
             title_capacity = extract_capacity(title)

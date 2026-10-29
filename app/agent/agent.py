@@ -1,5 +1,6 @@
 import json
 import logging
+from openai import BadRequestError
 from pydantic import ValidationError
 from app.models.competitor import CompetitorAnalysis
 from app.tools.product_review_tool import analyze_product_reviews_tool
@@ -19,7 +20,61 @@ from app.agent.competitor_verifier import extract_asin
 logger = logging.getLogger(__name__)
 
 
-def _parse_final_result(message, target_asin=None):
+def _create_completion(messages, analysis_tools, tool_choice):
+    """统一发起模型请求。
+
+    思考模式模型（如 qwen3.8）不支持把 tool_choice 指定为具体函数，
+    遇到该报错时自动降级，避免换模型后整条分析链路失效。
+    """
+    model = os.getenv("LLM_MODEL_NAME", "qwen3.7-flash")
+
+    try:
+        return client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=analysis_tools,
+            tool_choice=tool_choice,
+        )
+    except BadRequestError as e:
+        error_text = str(e)
+        if "tool_choice" not in error_text or "thinking" not in error_text:
+            raise
+
+        if tool_choice == "none":
+            # 连 tool_choice="none" 都不支持时，退化为纯文本请求
+            logger.warning(
+                "当前模型为思考模式，无法携带工具请求，改为纯文本请求"
+            )
+            return client.chat.completions.create(
+                model=model,
+                messages=messages,
+            )
+
+        logger.warning(
+            "当前模型为思考模式，不支持指定 tool_choice=%s，自动改用 auto",
+            tool_choice,
+        )
+        return client.chat.completions.create(
+            model=model,
+            messages=[
+                *messages,
+                {
+                    "role": "system",
+                    "content": "请先调用 search_knowledge 工具检索知识库，再决定后续步骤。",
+                },
+            ],
+            tools=analysis_tools,
+            tool_choice="auto",
+        )
+
+
+def _parse_final_result(
+    message,
+    target_asin=None,
+    target_title=None,
+    competitor_title=None,
+    competitor_brand=None,
+):
     """把模型的最终 JSON 回答解析为 CompetitorAnalysis 或错误 dict。"""
     content = message.content
     if not content or not content.strip():
@@ -55,6 +110,31 @@ def _parse_final_result(message, target_asin=None):
             expected_asin,
         )
         result.target_product.product.asin = expected_asin
+
+    # 目标页可能被 Amazon 降级页拦截，用发现阶段已核验的标题兜底
+    if target_title and not result.target_product.product.title:
+        logger.warning(
+            "模型未输出目标产品标题，按已核验标题回填：%s",
+            target_title,
+        )
+        result.target_product.product.title = target_title
+
+    # 竞品页同样可能被降级页拦截，用发现阶段的搜索结果标题兜底
+    if competitor_title and not result.competitor.product.title:
+        logger.warning(
+            "模型未输出竞品标题，按搜索结果标题回填：%s",
+            competitor_title,
+        )
+        result.competitor.product.title = competitor_title
+
+    # 品牌缺失会让竞品有效性判断失败，用发现阶段的品牌兜底
+    if competitor_brand and not result.competitor.product.brand:
+        logger.warning(
+            "模型未输出竞品品牌，按发现阶段结果回填：%s",
+            competitor_brand,
+        )
+        result.competitor.product.brand = competitor_brand
+
     logger.info(
         "最终结果校验：目标产品标题=%r，竞品标题=%r",
         result.target_product.product.title,
@@ -73,6 +153,9 @@ def competitor_agent(
       target_asin=None,
       competitor_asin=None,
       competitor_url=None,
+      target_title=None,
+      competitor_title=None,
+      competitor_brand=None,
   ):
     messages=[
         {
@@ -84,8 +167,14 @@ def competitor_agent(
               "content": (
                   f"请分析以下产品：\n"
                   f"目标产品：{target_product}\n"
-                  f"目标产品 ASIN（已核验，必须使用）：{target_asin or '未知'}\n"
+                  + (f"目标产品标题（已核验）：{target_title}\n"
+                     if target_title else "")
+                  + f"目标产品 ASIN（已核验，必须使用）：{target_asin or '未知'}\n"
                   f"竞品：{competitor}\n"
+                  + (f"竞品标题（已核验）：{competitor_title}\n"
+                     if competitor_title else "")
+                  + (f"竞品品牌（已核验）：{competitor_brand}\n"
+                     if competitor_brand else "")
                   + (f"竞品 ASIN（已核验，如提供必须使用）：{competitor_asin}\n"
                      if competitor_asin else "")
                   + (f"竞品链接：{competitor_url}\n"
@@ -112,16 +201,15 @@ def competitor_agent(
         ):
             raise ValueError("tools 中没有定义 search_knowledge")
 
-        response = client.chat.completions.create(
-            model=os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
-            messages=messages,
-            tools=analysis_tools,
-            tool_choice={
+        response = _create_completion(
+            messages,
+            analysis_tools,
+            {
                 "type": "function",
                 "function": {
                     "name": "search_knowledge"
                 }
-            }
+            },
         )
         max_rounds = 3
         for round_num in range(max_rounds):
@@ -132,7 +220,13 @@ def competitor_agent(
                 len(message.tool_calls or []),
             )
             if not message.tool_calls:
-                result = _parse_final_result(message, target_asin)
+                result = _parse_final_result(
+                    message,
+                    target_asin,
+                    target_title,
+                    competitor_title,
+                    competitor_brand,
+                )
                 return attach_review_analysis(
                     result,
                     target_review_analysis
@@ -340,23 +434,27 @@ def competitor_agent(
                         "缺失字段填 null，缺失列表填 []，不得再调用任何工具。"
                     )
                 })
-                response = client.chat.completions.create(
-                    model=os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
-                    messages=messages,
-                    tools=analysis_tools,
-                    tool_choice="none",
+                response = _create_completion(
+                    messages,
+                    analysis_tools,
+                    "none",
                 )
             else:
-                response = client.chat.completions.create(
-                    model=os.getenv("LLM_MODEL_NAME", "qwen3.7-flash"),
-                    messages=messages,
-                    tools=analysis_tools,
-                    tool_choice="auto",
+                response = _create_completion(
+                    messages,
+                    analysis_tools,
+                    "auto",
                 )
             logger.info("大模型再次请求成功")
         message = response.choices[0].message
         if not message.tool_calls:
-            result = _parse_final_result(message, target_asin)
+            result = _parse_final_result(
+                message,
+                target_asin,
+                target_title,
+                competitor_title,
+                competitor_brand,
+            )
             return attach_review_analysis(result, target_review_analysis)
         raise ValueError(
             f"达到最大工具调用轮数 {max_rounds}，"

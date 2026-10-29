@@ -1,0 +1,26 @@
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+
+    container_name: agent-worker
+
+    working_dir: /workspace
+
+    volumes:
+      - .:/workspace
+
+    env_file:
+      - .env
+
+    environment:
+      REDIS_URL: redis://agent-redis:6379/0
+      DB_HOST: host.docker.internal
+
+    networks:
+      - agent-network
+
+networks:
+  agent-network:
+    external: true

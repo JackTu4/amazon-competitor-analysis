@@ -5,3 +5,16 @@ beautifulsoup4
 openai
 tavily
 pytest
+# 数据库
+sqlalchemy
+pymysql
+# Redis + 后台任务队列
+redis
+rq==2.12.0
+
+# API 服务
+fastapi
+uvicorn
+
+# 测试
+pytest

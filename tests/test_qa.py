@@ -1,3 +1,7 @@
+import pytest
+
+pytestmark = pytest.mark.llm
+
 from app.rag.qa import answer_question
 def test_answer_question():
     question = "huadisk 的读取速度是多少？"

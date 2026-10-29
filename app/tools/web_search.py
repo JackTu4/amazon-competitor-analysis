@@ -12,12 +12,16 @@ load_dotenv()
 tavily_client = TavilyClient(
     api_key=os.getenv("TAVILY_API_KEY")
 )
-def search_web(query: str, include_domains: list[str] | None = None):
+def search_web(
+    query: str,
+    include_domains: list[str] | None = None,
+    max_results: int = 5,
+):
     logger.info("正在搜索: %s", query)
 
     # 1. 生成缓存键
     domains_key = tuple(sorted(include_domains or []))
-    cache_key = (query, domains_key)
+    cache_key = (query, domains_key, max_results)
 
     # 2. 查询缓存
     with _search_lock:
@@ -31,7 +35,7 @@ def search_web(query: str, include_domains: list[str] | None = None):
     try:
         response = tavily_client.search(
             query=query,
-            max_results=5,
+            max_results=max_results,
             include_domains=include_domains,
         )
 

@@ -75,13 +75,27 @@ def format_review_analysis(review_analysis):
 
 def _comparison_table(target, competitor):
     """目标产品与单个竞品的核心指标对比表。"""
+
+    # 1. 提前处理价格，避免 f-string 过长
+    target_price = (
+        display(target.price.amount)
+        if target.price is not None
+        else "暂无数据"
+    )
+
+    competitor_price = (
+        display(competitor.price.amount)
+        if competitor.price is not None
+        else "暂无数据"
+    )
+
+    # 2. 生成 Markdown 对比表格
     return (
         "| 对比指标 | 目标产品 | 竞品 |\n"
         "|---|---|---|\n"
         f"| 产品名称 | {display(target.product.name)} | {display(competitor.product.name)} |\n"
         f"| 品牌 | {display(target.product.brand)} | {display(competitor.product.brand)} |\n"
-        f"| 价格 | {display(target.price.amount) if target.price else '暂无数据'} | {display(competitor.price.amount) if
-        competitor.price else '暂无数据'} |\n"
+        f"| 价格 | {target_price} | {competitor_price} |\n"
         f"| 评分 | {display(target.rating)} | {display(competitor.rating)} |\n"
         f"| 评论数量 | {display(target.reviews)} | {display(competitor.reviews)} |\n"
         f"| 容量 | {display(target.product.capacity)} | {display(competitor.product.capacity)} |\n"
@@ -91,28 +105,64 @@ def _comparison_table(target, competitor):
     )
 
 
+
+def format_failures(failed):
+    """把失败竞品写进报告，避免降级信息被静默吞掉。"""
+
+    if not failed:
+        return []
+
+    lines = ["## 附：未完成分析的竞品"]
+
+    for item in failed:
+        lines.append(
+            f"- {display(item.get('name'))}：{display(item.get('reason'))}"
+        )
+
+    return ["\n".join(lines)]
+
+
 def generate_markdown(data):
     """生成亚马逊竞品分析报告（支持多个竞品）。"""
     analyses = data.get("analyses", [])
     valid = []
+    failed = []
+
     for item in analyses:
         analysis = item.get("analysis")
+        name = item.get("competitor_name") or "未知竞品"
+
+        if isinstance(analysis, dict) and analysis.get("error"):
+            reason = analysis.get("message") or analysis.get("error")
+            logger.warning("竞品分析失败，已降级。竞品名称：%s，原因：%s", name, reason)
+            failed.append({"name": name, "reason": reason})
+            continue
+
         if isinstance(analysis, dict):
             try:
                 analysis = CompetitorAnalysis(**analysis)
             except Exception as e:
                 logger.warning(
                     "竞品分析结果无效，跳过该竞品。竞品名称：%s，原因：%s",
-                    item.get("competitor_name", "未知"),
+                    name,
                     e,
                 )
+                failed.append({"name": name, "reason": f"结果校验失败：{e}"})
                 continue
 
         if isinstance(analysis, CompetitorAnalysis):
             valid.append(analysis)
+        else:
+            failed.append({"name": name, "reason": "分析结果为空"})
 
     if not valid:
-        return "# 亚马逊竞品分析报告\n\n当前没有成功分析的竞品，无法生成对比报告。\n"
+        parts = [
+            "# 亚马逊竞品分析报告",
+            "",
+            "当前没有成功分析的竞品，无法生成对比报告。",
+        ]
+        parts.extend(format_failures(failed))
+        return "\n\n".join(parts) + "\n"
 
     target = next(
         (
@@ -144,6 +194,10 @@ def generate_markdown(data):
     parts.append("## 三、数据说明")
     parts.append("本报告依据 Agent 实际返回的数据生成。")
     parts.append("未获取到的信息标记为“暂无数据”，不代表该产品不存在相关信息。")
+
+    # 降级信息必须出现在报告里
+    parts.extend(format_failures(failed))
+
     return "\n\n".join(parts)
 
 def save_report(content,task_id=None):
