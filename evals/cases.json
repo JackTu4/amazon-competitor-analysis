@@ -1,0 +1,162 @@
+[
+  {
+    "id": "case-01",
+    "type": "positive",
+    "target_product": "HUADISK 256GB NVMe SSD",
+    "note": "基线案例，与仓库现有测试数据同名，用来确认评估脚本本身跑得通",
+    "expected": {
+      "target_asin": "B0FFGXYXQV",
+      "brand": "HUADISK",
+      "price": 50.49,
+      "rating": 4.6,
+      "reviews": 56,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-02",
+    "type": "positive",
+    "target_product": "Samsung 980 1TB NVMe SSD",
+    "note": "国际大牌、型号明确，验证强品牌词下的竞品是否仍是“竞品”而不是同品牌",
+    "expected": {
+      "target_asin": "B0H1NH99GX",
+      "brand": "Samsung",
+      "price": 189.99,
+      "rating": 4.7,
+      "reviews": 49,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-03",
+    "type": "positive",
+    "target_product": "Crucial P3 500GB NVMe SSD",
+    "note": "型号 + 容量组合，检查容量不同的商品是否被错误并入",
+    "expected": {
+      "target_asin": "B0DC8K6KQD",
+      "brand": "Crucial",
+      "price": 103.14,
+      "rating": 4.7,
+      "reviews": 11503,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-04",
+    "type": "positive",
+    "target_product": "Kingston NV2 1TB NVMe SSD",
+    "note": "性价比品牌，竞品池通常更杂，观察竞品有效性是否下降",
+    "expected": {
+      "target_asin": "B0DBR9RZLV",
+      "brand": "Kingston",
+      "price": 119.99,
+      "rating": 4.7,
+      "reviews": 14394,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-05",
+    "type": "positive",
+    "target_product": "SanDisk 128GB microSD card",
+    "note": "跨类目：储存卡，检查类目关键词判定是否还能用",
+    "expected": {
+      "target_asin": "B0G8LLXFJH",
+      "brand": "SanDisk",
+      "price": 42.99,
+      "rating": 4.7,
+      "reviews": 1440,
+      "category_keywords": ["microsd", "micro sd", "sd card"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-06",
+    "type": "positive",
+    "target_product": "Anker 20W USB-C charger",
+    "note": "3C 配件，标题里规格多（W / 接口），检验字段抽取的抗噪能力",
+    "expected": {
+      "target_asin": "B099F558S1",
+      "brand": "Anker",
+      "price": 11.99,
+      "rating": 4.8,
+      "reviews": 15164,
+      "category_keywords": ["charger", "usb-c", "usb c"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-07",
+    "type": "positive",
+    "target_product": "Logitech M185 wireless mouse",
+    "note": "低单价标品，评论量大，检验评论分析与成本",
+    "expected": {
+      "target_asin": "B00P43PCI8",
+      "brand": "Logitech",
+      "price": 14.80,
+      "rating": 4.4,
+      "reviews": 45564,
+      "category_keywords": ["mouse", "wireless"],
+      "min_valid_competitors": 2
+    },
+    "expect": {"success": true}
+  },
+  {
+    "id": "case-08",
+    "type": "negative",
+    "target_product": "256GB NVMe SSD",
+    "note": "只给规格不给品牌，看系统会不会硬找一个“目标商品”。理想行为是明确失败",
+    "expected": {
+      "target_asin": "",
+      "brand": "",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["ssd", "nvme"],
+      "min_valid_competitors": 0
+    },
+    "expect": {"success": false}
+  },
+  {
+    "id": "case-09",
+    "type": "negative",
+    "target_product": "罗技 M185 无线鼠标",
+    "note": "中文输入，检验检索链路对非英文查询的处理；失败也算预期内",
+    "expected": {
+      "target_asin": "",
+      "brand": "Logitech",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["mouse", "wireless", "鼠标"],
+      "min_valid_competitors": 0
+    },
+    "expect": {"success": false}
+  },
+  {
+    "id": "case-10",
+    "type": "negative",
+    "target_product": "XYZABC 999TB SSD",
+    "note": "不存在的商品，理想行为是找不到 ASIN 直接失败，而不是编造一个结果",
+    "expected": {
+      "target_asin": "",
+      "brand": "XYZABC",
+      "price": null,
+      "rating": null,
+      "reviews": null,
+      "category_keywords": ["ssd"],
+      "min_valid_competitors": 0
+    },
+    "expect": {"success": false}
+  }
+]

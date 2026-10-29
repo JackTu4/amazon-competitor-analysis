@@ -1,0 +1,10 @@
+{
+  "currency": "USD",
+  "as_of": "2026-10-28",
+  "note": "按你实际使用的模型和套餐填写。不确定就保持 0：成本显示 0 比编一个数更诚实，面试时也能说清楚这是本地估算。",
+  "llm_input_per_1m": 0,
+  "llm_output_per_1m": 0,
+  "embedding_per_1m": 0,
+  "tavily_per_search": 0,
+  "brightdata_per_job": 0
+}

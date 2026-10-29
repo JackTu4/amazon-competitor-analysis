@@ -1,0 +1,11 @@
+﻿case_id,case_type,target_product,status,success,duration_seconds,target_field_accuracy,competitor_rate,valid_competitors,product_count,completeness,llm_calls,prompt_tokens,completion_tokens,embedding_tokens,tavily_calls,brightdata_jobs,cost_usd,failure_reasons
+case-01,positive,HUADISK 256GB NVMe SSD,completed,通过,388.8,0.600,0.944,3,4,0.938,23,97788,72756,343,4,1,0.0000,
+case-02,positive,Samsung 980 1TB NVMe SSD,completed,通过,235.7,0.400,0.833,3,4,0.688,25,77592,26513,241,11,1,0.0000,
+case-03,positive,Crucial P3 500GB NVMe SSD,completed,通过,207.5,0.200,0.944,3,4,0.750,26,82676,33000,246,11,1,0.0000,
+case-04,positive,Kingston NV2 1TB NVMe SSD,completed,通过,250.8,0.000,0.867,3,4,0.594,27,93901,36647,256,11,1,0.0000,
+case-05,positive,SanDisk 128GB microSD card,completed,通过,340.9,0.200,0.889,3,4,0.812,24,86533,50103,285,4,1,0.0000,
+case-06,positive,Anker 20W USB-C charger,completed,通过,819.6,0.200,1.000,3,4,0.875,22,102120,67402,220,4,1,0.0000,
+case-07,positive,Logitech M185 wireless mouse,completed,未通过,738.7,0.400,1.000,1,2,0.875,8,33969,25737,74,9,1,0.0000,有效竞品 1 个，少于预期 2 个
+case-08,negative,256GB NVMe SSD,failed,通过,46.5,,0.000,0,0,0.000,1,1525,382,0,9,1,0.0000,
+case-09,negative,罗技 M185 无线鼠标,failed,通过,306.2,0.000,0.000,0,0,0.000,3,11154,18377,0,6,1,0.0000,
+case-10,negative,XYZABC 999TB SSD,failed,通过,18.0,0.000,0.000,0,0,0.000,0,0,0,0,3,0,0.0000,
